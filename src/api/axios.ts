@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000',
+  baseURL: 'https://histolinkbackend-production.up.railway.app',
 })
 
 // Agrega el token automáticamente a cada petición
@@ -22,7 +22,7 @@ api.interceptors.response.use(
       original._retry = true
       try {
         const refresh = localStorage.getItem('refresh_token')
-        const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/auth/token/refresh/`, { refresh })
+        const res = await axios.post('https://histolinkbackend-production.up.railway.app/api/auth/token/refresh/', { refresh })
         localStorage.setItem('access_token', res.data.access)
         localStorage.setItem('refresh_token', res.data.refresh)
         original.headers.Authorization = `Bearer ${res.data.access}`
