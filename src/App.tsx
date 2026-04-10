@@ -3,6 +3,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import CambiarPassword from './pages/CambiarPassword'
+import Pacientes from './pages/Pacientes'
 
 export default function App() {
   return (
@@ -21,7 +22,12 @@ export default function App() {
             <CambiarPassword />
           </ProtectedRoute>
         } />
-
+        <Route path="/pacientes" element={
+          <ProtectedRoute>
+            <Pacientes />
+          </ProtectedRoute>
+        } />
+        
         {/* Redirige la raíz al dashboard */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
