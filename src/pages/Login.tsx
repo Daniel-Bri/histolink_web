@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
-import api from '../api/axios'
+import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [mostrarPassword, setMostrarPassword] = useState(false)
   const navigate = useNavigate()
 
-  // Si ya hay sesión activa, ir directo al dashboard
   useEffect(() => {
     const token = localStorage.getItem('access_token')
     if (token) navigate('/dashboard')
@@ -16,7 +17,7 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      const res = await api.post('/api/auth/login/', { username, password })
+      const res = await axios.post('http://127.0.0.1:8000/api/auth/login/', { username, password })
       localStorage.setItem('access_token', res.data.access)
       localStorage.setItem('refresh_token', res.data.refresh)
       localStorage.setItem('user', JSON.stringify(res.data.user))
@@ -45,13 +46,31 @@ export default function Login() {
             value={username}
             onChange={e => setUsername(e.target.value)}
           />
-          <input
-            placeholder="Contraseña"
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleLogin()}
-          />
+          <div style={{ position: 'relative' }}>
+            <input
+              placeholder="Contraseña"
+              type={mostrarPassword ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              style={{ width: '100%', paddingRight: '40px', boxSizing: 'border-box' }}
+            />
+            <button
+              onClick={() => setMostrarPassword(!mostrarPassword)}
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+              }}
+            >
+              {mostrarPassword ? <Eye size={18} color="#888" /> : <EyeOff size={18} color="#888" />}
+            </button>
+          </div>
           {error && <p style={{ color: '#E53935', fontSize: '13px' }}>{error}</p>}
           <button onClick={handleLogin} style={{ marginTop: '4px' }}>Entrar</button>
         </div>
