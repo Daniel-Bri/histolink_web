@@ -1,19 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../api/axios'
+import { api } from '../api/axiosConfig'
 
-interface Paciente {
-  id: number
-  ci: string
-  ci_complemento: string
-  nombres: string
-  apellido_paterno: string
-  apellido_materno: string
-  fecha_nacimiento: string
-  sexo: string
-  telefono: string
-  direccion: string
-}
+import type { Paciente } from '../types/paciente.types'
 
 interface PaginatedResponse {
   count: number
@@ -43,7 +32,7 @@ export default function Pacientes() {
       }
       if (search) params.search = search
 
-      const res = await api.get<PaginatedResponse>('/api/pacientes/pacientes/', { params })
+      const res = await api.get<PaginatedResponse>('pacientes/pacientes/', { params })
       setPacientes(res.data.results)
       setTotal(res.data.count)
       setTotalPaginas(Math.ceil(res.data.count / POR_PAGINA))
@@ -91,9 +80,21 @@ export default function Pacientes() {
 
       {/* Contenido */}
       <div style={{ padding: '32px' }}>
-        <h1 style={{ fontSize: '22px', color: '#0003B8', fontWeight: 700, marginBottom: '24px' }}>
-          Pacientes
-        </h1>
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '16px',
+            marginBottom: '24px',
+          }}
+        >
+          <h1 style={{ fontSize: '22px', color: '#0003B8', fontWeight: 700 }}>Pacientes</h1>
+          <button type="button" onClick={() => navigate('/pacientes/registro')}>
+            Registrar nuevo paciente
+          </button>
+        </div>
 
         {/* Buscador */}
         <div style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,3,184,0.06)' }}>

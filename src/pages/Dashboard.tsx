@@ -1,48 +1,24 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../api/axios'
-
-interface User {
-  id: number
-  username: string
-  first_name: string
-  last_name: string
-  email: string
-  groups: string[]
-}
+import { api } from '../api/axiosConfig'
+import { useAuth } from '../hooks/useAuth'
+import type { AuthUser } from '../services/authService'
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const [user, setUser] = useState<User | null>(null)
+  const { user, setUser, logout } = useAuth()
 
   useEffect(() => {
-    // Primero cargamos del localStorage para mostrar algo inmediato
-    const stored = localStorage.getItem('user')
-    if (stored) setUser(JSON.parse(stored))
-
-    // Luego intentamos refrescar desde el backend
-    api.get('/api/auth/profile/')
-      .then(res => {
+    api
+      .get<AuthUser>('auth/profile/')
+      .then((res) => {
         setUser(res.data)
         localStorage.setItem('user', JSON.stringify(res.data))
       })
       .catch((err) => {
-        // Solo logueamos el error, no redirigimos
         console.log('Error profile:', err.response?.status, err.response?.data)
       })
-  }, [])
-
-  const handleLogout = async () => {
-    try {
-      const refresh = localStorage.getItem('refresh_token')
-      await api.post('/api/auth/logout/', { refresh })
-    } catch {
-      console.log('Error al cerrar sesión')
-    } finally {
-      localStorage.clear()
-      navigate('/login')
-    }
-  }
+  }, [setUser])
 
   if (!user) {
     return (
@@ -71,7 +47,7 @@ export default function Dashboard() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end' }}>
           <span style={{ color: '#CCFAF4', fontSize: '13px' }}>{user.first_name} {user.last_name}</span>
-          <button onClick={handleLogout} style={{ background: 'transparent', border: '1.5px solid #B3D4FF', color: 'white', padding: '5px 14px', fontSize: '13px' }}>
+          <button onClick={() => void logout()} style={{ background: 'transparent', border: '1.5px solid #B3D4FF', color: 'white', padding: '5px 14px', fontSize: '13px' }}>
             Cerrar sesión
           </button>
           <button onClick={() => navigate('/cambiar-password')} style={{ background: 'transparent', border: '1.5px solid #B3D4FF', color: 'white', padding: '5px 14px', fontSize: '13px' }}>

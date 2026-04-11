@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import api from '../api/axios'
+import { api } from '../api/axiosConfig'
 import { useNavigate } from 'react-router-dom'
 
 export default function CambiarPassword() {
@@ -16,7 +16,7 @@ export default function CambiarPassword() {
       return
     }
     try {
-      await api.put('/api/auth/change-password/', {
+      await api.put('auth/change-password/', {
         old_password: oldPassword,
         new_password: newPassword,
         new_password_confirm: confirmPassword,

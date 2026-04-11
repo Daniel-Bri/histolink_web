@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
+import { useAuth } from '../hooks/useAuth'
 
 export default function Login() {
   const [username, setUsername] = useState('')
@@ -9,19 +9,16 @@ export default function Login() {
   const [error, setError] = useState('')
   const [mostrarPassword, setMostrarPassword] = useState(false)
   const navigate = useNavigate()
+  const { login, isAuthenticated } = useAuth()
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token')
-    if (token) navigate('/dashboard')
-  }, [])
+    if (isAuthenticated) navigate('/dashboard', { replace: true })
+  }, [isAuthenticated, navigate])
 
   const handleLogin = async () => {
     try {
-      const res = await axios.post('http://127.0.0.1:8000/api/auth/login/', { username, password })
-      localStorage.setItem('access_token', res.data.access)
-      localStorage.setItem('refresh_token', res.data.refresh)
-      localStorage.setItem('user', JSON.stringify(res.data.user))
-      navigate('/dashboard')
+      await login(username, password)
+      navigate('/dashboard', { replace: true })
     } catch {
       setError('Usuario o contraseña incorrectos')
     }
