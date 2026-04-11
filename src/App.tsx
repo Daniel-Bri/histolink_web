@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import CambiarPassword from './pages/CambiarPassword'
 import EnConstruccion from './pages/EnConstruccion'
 import Pacientes from './pages/Pacientes'
+import ExpedientePaciente from './pages/ExpedientePaciente'
 
 export default function App() {
   return (
@@ -34,6 +35,11 @@ export default function App() {
         } />
         <Route path="/agenda" element={
           <ProtectedRoute><EnConstruccion titulo="Agenda" /></ProtectedRoute>
+        } />
+        <Route path="/pacientes/:id/expediente" element={
+          <ProtectedRoute>
+            <ExpedientePaciente />
+          </ProtectedRoute>
         } />
         
         {/* Redirige la raíz al dashboard */}
