@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import CambiarPassword from './pages/CambiarPassword'
 import EnConstruccion from './pages/EnConstruccion'
+import Pacientes from './pages/Pacientes'
 
 export default function App() {
   return (
@@ -19,10 +20,12 @@ export default function App() {
           <ProtectedRoute><CambiarPassword /></ProtectedRoute>
         } />
 
-        {/* Módulos en construcción */}
+        {/* Módulos implementados */}
         <Route path="/pacientes" element={
-          <ProtectedRoute><EnConstruccion titulo="Pacientes" /></ProtectedRoute>
+          <ProtectedRoute><Pacientes /></ProtectedRoute>
         } />
+
+        {/* Módulos en construcción */}
         <Route path="/historial" element={
           <ProtectedRoute><EnConstruccion titulo="Historial Clínico" /></ProtectedRoute>
         } />
@@ -32,7 +35,7 @@ export default function App() {
         <Route path="/agenda" element={
           <ProtectedRoute><EnConstruccion titulo="Agenda" /></ProtectedRoute>
         } />
-
+        
         {/* Redirige la raíz al dashboard */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
