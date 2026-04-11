@@ -8,7 +8,7 @@ function Icon({ name, size = 15 }: { name: string; size?: number }) {
   const s = { width: size, height: size, display: 'block', flexShrink: 0 } as const
   const p = { fill: 'none', strokeWidth: '1.6', stroke: 'currentColor', strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
 
-  const icons: Record<string, JSX.Element> = {
+  const icons = {
     users: (
       <svg viewBox="0 0 16 16" style={s} {...p}>
         <circle cx="6" cy="5" r="2.5" />
@@ -110,7 +110,7 @@ function Icon({ name, size = 15 }: { name: string; size?: number }) {
     ),
   }
 
-  return icons[name] ?? null
+  return icons[name as keyof typeof icons] ?? null
 }
 
 // ── Datos de navegación ───────────────────────────────────────────────────
