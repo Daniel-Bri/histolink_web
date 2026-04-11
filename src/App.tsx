@@ -3,23 +3,34 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import CambiarPassword from './pages/CambiarPassword'
+import EnConstruccion from './pages/EnConstruccion'
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
-        
+
         {/* Rutas protegidas */}
         <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
+          <ProtectedRoute><Dashboard /></ProtectedRoute>
         } />
         <Route path="/cambiar-password" element={
-          <ProtectedRoute>
-            <CambiarPassword />
-          </ProtectedRoute>
+          <ProtectedRoute><CambiarPassword /></ProtectedRoute>
+        } />
+
+        {/* Módulos en construcción */}
+        <Route path="/pacientes" element={
+          <ProtectedRoute><EnConstruccion titulo="Pacientes" /></ProtectedRoute>
+        } />
+        <Route path="/historial" element={
+          <ProtectedRoute><EnConstruccion titulo="Historial Clínico" /></ProtectedRoute>
+        } />
+        <Route path="/documentos" element={
+          <ProtectedRoute><EnConstruccion titulo="Documentos" /></ProtectedRoute>
+        } />
+        <Route path="/agenda" element={
+          <ProtectedRoute><EnConstruccion titulo="Agenda" /></ProtectedRoute>
         } />
 
         {/* Redirige la raíz al dashboard */}

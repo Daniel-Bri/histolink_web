@@ -52,10 +52,7 @@ export default function Dashboard() {
     )
   }
 
-  const rolRaw = user.groups?.[0]
-  const rol = typeof rolRaw === 'object' && rolRaw !== null
-  ? (rolRaw as { id: number; name: string }).name
-  : (rolRaw as string) ?? 'Sin rol'
+  const rol = user.groups?.[0] ?? 'Sin rol'
 
   return (
     <div style={{ minHeight: '100vh', background: '#F0F6FF' }}>
