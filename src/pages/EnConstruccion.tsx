@@ -18,7 +18,7 @@ export default function EnConstruccion({ titulo = 'Sección' }: Props) {
           {titulo}
         </h2>
         <p style={{ color: '#888', fontSize: '14px', lineHeight: 1.6 }}>
-          Esta sección está en desarrollo y estará disponible próximamente.
+          Esta sección está en desarrollo y estará disponible próximamente
         </p>
       </div>
     </div>
