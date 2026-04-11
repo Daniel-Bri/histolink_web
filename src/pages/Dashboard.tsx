@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
+import { getStoredUser } from '../utils/auth'
 
 interface User {
   id: number
@@ -11,101 +12,92 @@ interface User {
   groups: string[]
 }
 
+const MODULOS = [
+  { titulo: 'Pacientes',       desc: 'Registro, búsqueda y expedientes',   icon: '👥', color: '#0003B8', ruta: '/pacientes' },
+  { titulo: 'Historial',       desc: 'Consultas y diagnósticos previos',    icon: '📋', color: '#00A896', ruta: '/historial', soon: true },
+  { titulo: 'Documentos',      desc: 'Gestión documental clínica',          icon: '📄', color: '#0080FF', ruta: '/documentos', soon: true },
+  { titulo: 'Agenda',          desc: 'Citas y turnos programados',          icon: '📅', color: '#5C6BC0', ruta: '/agenda', soon: true },
+]
+
 export default function Dashboard() {
   const navigate = useNavigate()
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<User | null>(getStoredUser())
 
   useEffect(() => {
-    // Primero cargamos del localStorage para mostrar algo inmediato
-    const stored = localStorage.getItem('user')
-    if (stored) setUser(JSON.parse(stored))
-
-    // Luego intentamos refrescar desde el backend
     api.get('/api/auth/profile/')
       .then(res => {
         setUser(res.data)
         localStorage.setItem('user', JSON.stringify(res.data))
       })
-      .catch((err) => {
-        // Solo logueamos el error, no redirigimos
-        console.log('Error profile:', err.response?.status, err.response?.data)
-      })
+      .catch(() => {})
   }, [])
-
-  const handleLogout = async () => {
-    try {
-      const refresh = localStorage.getItem('refresh_token')
-      await api.post('/api/auth/logout/', { refresh })
-    } catch {
-      console.log('Error al cerrar sesión')
-    } finally {
-      localStorage.clear()
-      navigate('/login')
-    }
-  }
 
   if (!user) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F0F6FF' }}>
-        <p style={{ color: '#0003B8', fontWeight: 600 }}>Cargando...</p>
-      </div>
+      <div style={{ padding: '40px', color: '#0003B8', fontWeight: 600 }}>Cargando...</div>
     )
   }
 
   const rol = user.groups?.[0] ?? 'Sin rol'
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F0F6FF' }}>
+    <div style={{ padding: '32px' }}>
 
-      {/* Navbar */}
-      <div style={{ background: '#0003B8', padding: '10px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ background: '#00A896', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '13px' }}>
-            HL
-          </div>
-          <span style={{ color: 'white', fontWeight: 700, fontSize: '18px' }}>HistoLink</span>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end' }}>
-          <span style={{ color: '#CCFAF4', fontSize: '13px' }}>{user.first_name} {user.last_name}</span>
-          <button onClick={handleLogout} style={{ background: 'transparent', border: '1.5px solid #B3D4FF', color: 'white', padding: '5px 14px', fontSize: '13px' }}>
-            Cerrar sesión
-          </button>
-          <button onClick={() => navigate('/cambiar-password')} style={{ background: 'transparent', border: '1.5px solid #B3D4FF', color: 'white', padding: '5px 14px', fontSize: '13px' }}>
-            Cambiar contraseña
-          </button>
-        </div>
+      {/* Saludo */}
+      <div style={{ marginBottom: '32px' }}>
+        <p style={{ color: '#0080FF', fontSize: '14px', fontWeight: 600, margin: '0 0 4px 0' }}>
+          Bienvenido de vuelta
+        </p>
+        <h1 style={{ fontSize: '26px', color: '#0003B8', fontWeight: 700, margin: '0 0 8px 0' }}>
+          {user.first_name} {user.last_name}
+        </h1>
+        <span style={{
+          display: 'inline-block',
+          background: '#CCFAF4', color: '#00A896',
+          padding: '4px 14px', borderRadius: '20px',
+          fontSize: '13px', fontWeight: 600,
+        }}>
+          {rol}
+        </span>
       </div>
 
-      {/* Contenido */}
-      <div style={{ padding: '32px' }}>
-        <div style={{ marginBottom: '28px' }}>
-          <h1 style={{ fontSize: '22px', color: '#0003B8', fontWeight: 700 }}>
-            Bienvenido, {user.first_name} {user.last_name}
-          </h1>
-          <span style={{ display: 'inline-block', marginTop: '6px', background: '#CCFAF4', color: '#00A896', padding: '3px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 600 }}>
-            {rol}
-          </span>
-        </div>
-
-        {/* Tarjetas */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
-          {[
-            { titulo: 'Pacientes', desc: 'Registro y búsqueda', color: '#0080FF', ruta: '/pacientes' },
-            { titulo: 'Historial Clínico', desc: 'Consultas y diagnósticos', color: '#00A896', ruta: '/historial' },
-            { titulo: 'Documentos', desc: 'Gestión documental', color: '#0003B8', ruta: '/documentos' },
-            { titulo: 'Agenda', desc: 'Citas y turnos', color: '#B3D4FF', ruta: '/agenda' },
-          ].map((mod) => (
-            <div
-              key={mod.titulo}
-              onClick={() => navigate(mod.ruta)}
-              style={{ background: 'white', borderRadius: '12px', padding: '20px', borderTop: `4px solid ${mod.color}`, boxShadow: '0 2px 8px rgba(0,3,184,0.06)', cursor: 'pointer' }}
-            >
-              <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#0003B8', marginBottom: '6px' }}>{mod.titulo}</h3>
-              <p style={{ fontSize: '13px', color: '#888' }}>{mod.desc}</p>
-            </div>
-          ))}
-        </div>
+      {/* Módulos */}
+      <h2 style={{ fontSize: '15px', fontWeight: 600, color: '#0003B8', marginBottom: '16px', opacity: 0.7 }}>
+        MÓDULOS DISPONIBLES
+      </h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+        {MODULOS.map(mod => (
+          <div
+            key={mod.titulo}
+            onClick={() => navigate(mod.ruta)}
+            style={{
+              background: 'white',
+              borderRadius: '14px',
+              padding: '22px 20px',
+              borderTop: `4px solid ${mod.color}`,
+              boxShadow: '0 2px 10px rgba(0,3,184,0.07)',
+              cursor: 'pointer',
+              position: 'relative',
+              transition: 'box-shadow 0.15s',
+            }}
+          >
+            <div style={{ fontSize: '28px', marginBottom: '10px' }}>{mod.icon}</div>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#0003B8', margin: '0 0 4px 0' }}>
+              {mod.titulo}
+            </h3>
+            <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>{mod.desc}</p>
+            {mod.soon && (
+              <span style={{
+                position: 'absolute', top: '12px', right: '12px',
+                background: '#F0F6FF', color: '#B3D4FF',
+                fontSize: '10px', fontWeight: 700, padding: '2px 8px',
+                borderRadius: '8px', border: '1px solid #B3D4FF',
+              }}>
+                Pronto
+              </span>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   )
