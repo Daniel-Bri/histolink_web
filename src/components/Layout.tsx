@@ -110,7 +110,7 @@ function Icon({ name, size = 15 }: { name: string; size?: number }) {
     ),
   }
 
-  return icons[name] ?? null
+  return icons[name as keyof typeof icons] ?? null
 }
 
 // ── Datos de navegación ───────────────────────────────────────────────────
