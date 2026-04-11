@@ -134,7 +134,7 @@ export default function Pacientes() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#F0F6FF' }}>
-                  {['CI', 'Nombre', 'Apellido Paterno', 'Apellido Materno', 'Sexo', 'Teléfono'].map(h => (
+                  {['CI', 'Nombre', 'Apellido Paterno', 'Apellido Materno', 'Sexo', 'Teléfono', 'Acciones'].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#0003B8' }}>
                       {h}
                     </th>
@@ -150,6 +150,14 @@ export default function Pacientes() {
                     <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.apellido_materno}</td>
                     <td style={{ padding: '12px 16px', fontSize: '14px' }}>{sexoLabel(p.sexo)}</td>
                     <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.telefono || '—'}</td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px' }}>
+                      <button
+                        onClick={() => navigate(`/pacientes/${p.id}/expediente`)}
+                        style={{ background: 'transparent', color: '#0003B8', border: '1px solid #B3D4FF', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer' }}
+                      >
+                        Ver expediente
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
