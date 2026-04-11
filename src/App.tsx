@@ -3,6 +3,8 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import CambiarPassword from './pages/CambiarPassword'
+import PersonalList from './pages/GestionPersonal/PersonalList'
+import PersonalForm from './pages/GestionPersonal/PersonalForm'
 
 export default function App() {
   return (
@@ -19,6 +21,21 @@ export default function App() {
         <Route path="/cambiar-password" element={
           <ProtectedRoute>
             <CambiarPassword />
+          </ProtectedRoute>
+        } />
+        <Route path="/personal" element={
+          <ProtectedRoute>
+            <PersonalList />
+          </ProtectedRoute>
+        } />
+        <Route path="/personal/nuevo" element={
+          <ProtectedRoute>
+            <PersonalForm />
+          </ProtectedRoute>
+        } />
+        <Route path="/personal/:id/editar" element={
+          <ProtectedRoute>
+            <PersonalForm />
           </ProtectedRoute>
         } />
 

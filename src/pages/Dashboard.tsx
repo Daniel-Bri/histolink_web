@@ -94,6 +94,7 @@ export default function Dashboard() {
         {/* Tarjetas */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
           {[
+            { titulo: 'Personal de salud', desc: 'Alta, edición y baja', color: '#0003B8', ruta: '/personal' },
             { titulo: 'Pacientes', desc: 'Registro y búsqueda', color: '#0080FF', ruta: '/pacientes' },
             { titulo: 'Historial Clínico', desc: 'Consultas y diagnósticos', color: '#00A896', ruta: '/historial' },
             { titulo: 'Documentos', desc: 'Gestión documental', color: '#0003B8', ruta: '/documentos' },
