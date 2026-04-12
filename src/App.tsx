@@ -8,12 +8,41 @@ import EnConstruccion from './pages/EnConstruccion'
 import Pacientes from './pages/Pacientes'
 import ExpedientePaciente from './pages/ExpedientePaciente'
 import EditarAntecedentes from './pages/EditarAntecedentes'
+import PersonalList from './pages/GestionPersonal/PersonalList'
+import PersonalForm from './pages/GestionPersonal/PersonalForm'
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        
+        {/* Rutas protegidas */}
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/cambiar-password" element={
+          <ProtectedRoute>
+            <CambiarPassword />
+          </ProtectedRoute>
+        } />
+        <Route path="/personal" element={
+          <ProtectedRoute>
+            <PersonalList />
+          </ProtectedRoute>
+        } />
+        <Route path="/personal/nuevo" element={
+          <ProtectedRoute>
+            <PersonalForm />
+          </ProtectedRoute>
+        } />
+        <Route path="/personal/:id/editar" element={
+          <ProtectedRoute>
+            <PersonalForm />
+          </ProtectedRoute>
+        } />
 
         {/* Rutas protegidas con sidebar */}
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
