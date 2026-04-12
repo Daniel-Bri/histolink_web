@@ -25,11 +25,22 @@ export interface PersonalSalud {
   is_active: boolean
 }
 
-export interface PersonalWritePayload {
-  user_id: number
+export interface PersonalCreatePayload {
+  username: string
+  first_name: string
+  last_name: string
+  email?: string
+  password: string
   item_min_salud: string
   rol: RolPersonal
-  especialidad: number | null
+  especialidad?: number | null
+  telefono?: string | null
+}
+
+export interface PersonalUpdatePayload {
+  item_min_salud: string
+  rol: RolPersonal
+  especialidad?: number | null
   telefono?: string | null
 }
 
@@ -43,20 +54,24 @@ export async function fetchPersonal(incluirInactivos = true) {
 }
 
 export async function fetchPersonalById(id: number) {
-  const { data } = await api.get<PersonalSalud>(`/api/personal/${id}/`)
+  const { data } = await api.get<PersonalSalud>(`personal/${id}/`)
   return data
 }
 
-export async function createPersonal(payload: PersonalWritePayload) {
+export async function createPersonal(payload: PersonalCreatePayload) {
   const { data } = await api.post<PersonalSalud>('personal/', payload)
   return data
 }
 
-export async function updatePersonal(id: number, payload: PersonalWritePayload) {
-  const { data } = await api.put<PersonalSalud>(`/api/personal/${id}/`, payload)
+export async function updatePersonal(id: number, payload: PersonalUpdatePayload) {
+  const { data } = await api.put<PersonalSalud>(`personal/${id}/`, payload)
   return data
 }
 
 export async function deactivatePersonal(id: number) {
-  await api.delete(`/api/personal/${id}/`)
+  await api.delete(`personal/${id}/`)
+}
+
+export async function reactivatePersonal(id: number) {
+  await api.post(`personal/${id}/reactivar/`)
 }

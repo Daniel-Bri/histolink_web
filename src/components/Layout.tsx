@@ -131,7 +131,7 @@ const NAV: NavSection[] = [
     title: 'Gestión de Usuarios',
     items: [
       { label: 'Pacientes',         path: '/pacientes', icon: 'users' },
-      { label: 'Personal de Salud', path: '/personal',  icon: 'user-plus', soon: true, roles: ['Administrativo', 'Director'] },
+      { label: 'Personal de Salud', path: '/personal',  icon: 'user-plus', roles: ['Administrativo', 'Director'] },
     ],
   },
   {
