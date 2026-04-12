@@ -1,19 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../api/axios'
+import { api } from '../api/axiosConfig'
 
-interface Paciente {
-  id: number
-  ci: string
-  ci_complemento: string
-  nombres: string
-  apellido_paterno: string
-  apellido_materno: string
-  fecha_nacimiento: string
-  sexo: string
-  telefono: string
-  direccion: string
-}
+import type { Paciente } from '../types/paciente.types'
 
 interface PaginatedResponse {
   count: number
@@ -59,11 +48,19 @@ export default function Pacientes() {
     <div style={{ padding: '32px' }}>
 
       {/* Encabezado */}
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '22px', color: '#0003B8', fontWeight: 700, margin: 0 }}>Pacientes</h1>
-        <p style={{ color: '#888', fontSize: '13px', margin: '4px 0 0 0' }}>
-          {total > 0 ? `${total} paciente${total !== 1 ? 's' : ''} registrado${total !== 1 ? 's' : ''}` : 'Busca o lista todos los pacientes'}
-        </p>
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', alignItems: 'center',
+        justifyContent: 'space-between', gap: '16px', marginBottom: '24px',
+      }}>
+        <div>
+          <h1 style={{ fontSize: '22px', color: '#0003B8', fontWeight: 700, margin: 0 }}>Pacientes</h1>
+          <p style={{ color: '#888', fontSize: '13px', margin: '4px 0 0 0' }}>
+            {total > 0 ? `${total} paciente${total !== 1 ? 's' : ''} registrado${total !== 1 ? 's' : ''}` : 'Busca o lista todos los pacientes'}
+          </p>
+        </div>
+        <button type="button" onClick={() => navigate('/pacientes/registro')}>
+          Registrar nuevo paciente
+        </button>
       </div>
 
       {/* Buscador */}

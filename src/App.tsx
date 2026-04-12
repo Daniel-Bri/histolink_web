@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import Login from './pages/Login'
@@ -10,10 +11,12 @@ import ExpedientePaciente from './pages/ExpedientePaciente'
 import EditarAntecedentes from './pages/EditarAntecedentes'
 import PersonalList from './pages/GestionPersonal/PersonalList'
 import PersonalForm from './pages/GestionPersonal/PersonalForm'
+import RegistroPaciente from './pages/Pacientes/RegistroPaciente'
 
 export default function App() {
   return (
     <BrowserRouter>
+      <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
         
@@ -56,8 +59,16 @@ export default function App() {
           <Route path="/agenda"     element={<EnConstruccion titulo="Agenda" />} />
         </Route>
 
+        <Route path="/pacientes/registro" element={
+          <ProtectedRoute>
+            <RegistroPaciente />
+          </ProtectedRoute>
+        } />
+        
+        {/* Redirige la raíz al dashboard */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

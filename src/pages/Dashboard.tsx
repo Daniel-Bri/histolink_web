@@ -1,36 +1,31 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../api/axios'
-import { getStoredUser } from '../utils/auth'
-
-interface User {
-  id: number
-  username: string
-  first_name: string
-  last_name: string
-  email: string
-  groups: string[]
-}
+import { api } from '../api/axiosConfig'
+import { useAuth } from '../hooks/useAuth'
+import type { AuthUser } from '../services/authService'
 
 const MODULOS = [
-  { titulo: 'Pacientes',       desc: 'Registro, búsqueda y expedientes',   icon: '👥', color: '#0003B8', ruta: '/pacientes' },
-  { titulo: 'Historial',       desc: 'Consultas y diagnósticos previos',    icon: '📋', color: '#00A896', ruta: '/historial', soon: true },
-  { titulo: 'Documentos',      desc: 'Gestión documental clínica',          icon: '📄', color: '#0080FF', ruta: '/documentos', soon: true },
-  { titulo: 'Agenda',          desc: 'Citas y turnos programados',          icon: '📅', color: '#5C6BC0', ruta: '/agenda', soon: true },
+  { titulo: 'Pacientes',  desc: 'Registro, búsqueda y expedientes',  icon: '👥', color: '#0003B8', ruta: '/pacientes' },
+  { titulo: 'Historial',  desc: 'Consultas y diagnósticos previos',   icon: '📋', color: '#00A896', ruta: '/historial', soon: true },
+  { titulo: 'Documentos', desc: 'Gestión documental clínica',         icon: '📄', color: '#0080FF', ruta: '/documentos', soon: true },
+  { titulo: 'Agenda',     desc: 'Citas y turnos programados',         icon: '📅', color: '#5C6BC0', ruta: '/agenda',     soon: true },
 ]
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const [user, setUser] = useState<User | null>(getStoredUser())
+  const { user, setUser } = useAuth()
 
   useEffect(() => {
-    api.get('/api/auth/profile/')
-      .then(res => {
+    api
+      .get<AuthUser>('auth/profile/')
+      .then((res) => {
         setUser(res.data)
         localStorage.setItem('user', JSON.stringify(res.data))
       })
-      .catch(() => {})
-  }, [])
+      .catch((err) => {
+        console.log('Error profile:', err.response?.status, err.response?.data)
+      })
+  }, [setUser])
 
   if (!user) {
     return (
@@ -102,4 +97,3 @@ export default function Dashboard() {
     </div>
   )
 }
-
