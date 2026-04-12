@@ -22,7 +22,7 @@ const VACIO: PacienteForm = {
   telefono: '', direccion: '',
 }
 
-const LABEL = (s: string) => ({
+const LABEL = () => ({
   display: 'block',
   fontSize: '12px', fontWeight: 700 as const,
   color: '#0003B8', opacity: 0.7,
@@ -177,7 +177,7 @@ export default function EditarPaciente() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
 
               <div>
-                <label style={LABEL('')}>CI *</label>
+                <label style={LABEL()}>CI *</label>
                 <input
                   value={form.ci}
                   onChange={e => set('ci', e.target.value.replace(/\D/g, '').slice(0, 10))}
@@ -188,7 +188,7 @@ export default function EditarPaciente() {
               </div>
 
               <div>
-                <label style={LABEL('')}>Complemento CI</label>
+                <label style={LABEL()}>Complemento CI</label>
                 <input
                   value={form.ci_complemento}
                   onChange={e => set('ci_complemento', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 2))}
@@ -200,7 +200,7 @@ export default function EditarPaciente() {
               </div>
 
               <div>
-                <label style={LABEL('')}>Nombres *</label>
+                <label style={LABEL()}>Nombres *</label>
                 <input
                   value={form.nombres}
                   onChange={e => set('nombres', e.target.value.slice(0, 100))}
@@ -210,7 +210,7 @@ export default function EditarPaciente() {
               </div>
 
               <div>
-                <label style={LABEL('')}>Apellido paterno *</label>
+                <label style={LABEL()}>Apellido paterno *</label>
                 <input
                   value={form.apellido_paterno}
                   onChange={e => set('apellido_paterno', e.target.value.slice(0, 100))}
@@ -220,7 +220,7 @@ export default function EditarPaciente() {
               </div>
 
               <div>
-                <label style={LABEL('')}>Apellido materno</label>
+                <label style={LABEL()}>Apellido materno</label>
                 <input
                   value={form.apellido_materno}
                   onChange={e => set('apellido_materno', e.target.value.slice(0, 100))}
@@ -230,7 +230,7 @@ export default function EditarPaciente() {
               </div>
 
               <div>
-                <label style={LABEL('')}>Fecha de nacimiento *</label>
+                <label style={LABEL()}>Fecha de nacimiento *</label>
                 <input
                   type="date"
                   value={form.fecha_nacimiento}
@@ -242,7 +242,7 @@ export default function EditarPaciente() {
               </div>
 
               <div>
-                <label style={LABEL('')}>Sexo *</label>
+                <label style={LABEL()}>Sexo *</label>
                 <select
                   value={form.sexo}
                   onChange={e => set('sexo', e.target.value)}
@@ -267,7 +267,7 @@ export default function EditarPaciente() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
 
               <div>
-                <label style={LABEL('')}>Email</label>
+                <label style={LABEL()}>Email</label>
                 <input
                   type="email"
                   value={form.email}
@@ -279,7 +279,7 @@ export default function EditarPaciente() {
               </div>
 
               <div>
-                <label style={LABEL('')}>Teléfono</label>
+                <label style={LABEL()}>Teléfono</label>
                 <input
                   value={form.telefono}
                   onChange={e => set('telefono', e.target.value.replace(/\D/g, '').slice(0, 15))}
@@ -291,7 +291,7 @@ export default function EditarPaciente() {
               </div>
 
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={LABEL('')}>Dirección</label>
+                <label style={LABEL()}>Dirección</label>
                 <input
                   value={form.direccion}
                   onChange={e => set('direccion', e.target.value.slice(0, 200))}
