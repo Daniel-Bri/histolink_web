@@ -4,11 +4,12 @@ export interface Paciente {
   id: number
   ci: string
   ci_complemento: string
-  nombres: string
-  apellido_paterno: string
+  // El serializer devuelve aliases: nombre, apellido, genero
+  nombre: string
+  apellido: string
   apellido_materno: string
   fecha_nacimiento: string
-  sexo: SexoPaciente | string
+  genero: SexoPaciente | string
   email?: string
   telefono: string
   direccion: string

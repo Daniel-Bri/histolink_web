@@ -1,4 +1,4 @@
-import api from '../api/axios'
+import { api } from '../api/axiosConfig'
 
 export interface Especialidad {
   id: number
@@ -6,6 +6,6 @@ export interface Especialidad {
 }
 
 export async function fetchEspecialidades() {
-  const { data } = await api.get<Especialidad[]>('/api/especialidades/')
+  const { data } = await api.get<Especialidad[]>('especialidades/')
   return data
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import api from '../api/axios'
+import { api } from '../api/axiosConfig'
 
 interface AntecedenteForm {
   grupo_sanguineo: string
@@ -44,7 +44,7 @@ export default function EditarAntecedentes() {
 
   useEffect(() => {
     if (!id) { setError('ID inválido.'); setLoading(false); return }
-    api.get(`/api/antecedentes/${id}/antecedentes/`)
+    api.get(`antecedentes/${id}/antecedentes/`)
       .then(r => {
         const d = r.data
         setForm({
@@ -73,7 +73,7 @@ export default function EditarAntecedentes() {
     if (!id) return
     setGuardando(true); setError(''); setExito('')
     try {
-      await api.patch(`/api/antecedentes/${id}/antecedentes/`, form)
+      await api.patch(`antecedentes/${id}/antecedentes/`, form)
       setExito('Antecedentes actualizados correctamente.')
       setTimeout(() => navigate(`/pacientes/${id}/expediente`), 1200)
     } catch (e: any) {

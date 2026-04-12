@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import api from '../api/axios'
+import { api } from '../api/axiosConfig'
 import { hasRole } from '../utils/auth'
 
 interface Antecedentes {
@@ -126,11 +126,11 @@ export default function ExpedientePaciente() {
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState('')
 
-  const puedeEditarAntecedentes = hasRole('Médico', 'Enfermera')
+  const puedeEditarAntecedentes = hasRole('Médico', 'Enfermera', 'Administrativo', 'Director')
 
   useEffect(() => {
     if (!id) { setError('ID inválido.'); setLoading(false); return }
-    api.get<ExpedienteData>(`/api/expediente/${id}/expediente/`)
+    api.get<ExpedienteData>(`expediente/${id}/expediente/`)
       .then(r => setData(r.data))
       .catch(e => setError(e?.response?.data?.error ?? 'No se pudo cargar el expediente.'))
       .finally(() => setLoading(false))

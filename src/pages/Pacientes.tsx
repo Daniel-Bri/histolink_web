@@ -30,7 +30,7 @@ export default function Pacientes() {
     try {
       const params: Record<string, string | number> = { page: pag, page_size: POR_PAGINA }
       if (search) params.search = search
-      const res = await api.get<PaginatedResponse>('/api/pacientes/pacientes/', { params })
+      const res = await api.get<PaginatedResponse>('pacientes/pacientes/', { params })
       setPacientes(res.data.results)
       setTotal(res.data.count)
       setTotalPaginas(Math.ceil(res.data.count / POR_PAGINA))
@@ -108,7 +108,7 @@ export default function Pacientes() {
               <tr style={{ background: '#F0F6FF' }}>
                 {['CI', 'Nombres', 'Ap. Paterno', 'Ap. Materno', 'Nacimiento', 'Sexo', 'Teléfono', ''].map(h => (
                   <th key={h} style={{
-                    padding: '12px 16px', textAlign: 'left',
+                    padding: '12px 16px', textAlign: h === '' ? 'right' : 'left',
                     fontSize: '12px', fontWeight: 700, color: '#0003B8',
                     letterSpacing: '0.04em', textTransform: 'uppercase',
                   }}>
@@ -129,24 +129,37 @@ export default function Pacientes() {
                   <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: '#0003B8' }}>
                     {p.ci}{p.ci_complemento ? `-${p.ci_complemento}` : ''}
                   </td>
-                  <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.nombres}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.apellido_paterno}</td>
+                  <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.nombre}</td>
+                  <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.apellido}</td>
                   <td style={{ padding: '12px 16px', fontSize: '14px' }}>{p.apellido_materno || '—'}</td>
                   <td style={{ padding: '12px 16px', fontSize: '14px', color: '#555' }}>{p.fecha_nacimiento}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '14px' }}>{SEXO[p.sexo] ?? p.sexo}</td>
+                  <td style={{ padding: '12px 16px', fontSize: '14px' }}>{SEXO[p.genero] ?? p.genero}</td>
                   <td style={{ padding: '12px 16px', fontSize: '14px', color: '#555' }}>{p.telefono || '—'}</td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <button
-                      onClick={() => navigate(`/pacientes/${p.id}/expediente`)}
-                      style={{
-                        background: '#0003B8', color: 'white',
-                        border: 'none', borderRadius: '6px',
-                        padding: '6px 14px', cursor: 'pointer',
-                        fontSize: '12px', fontWeight: 600,
-                      }}
-                    >
-                      Ver expediente
-                    </button>
+                  <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={() => navigate(`/pacientes/${p.id}/expediente`)}
+                        style={{
+                          background: '#0003B8', color: 'white',
+                          border: 'none', borderRadius: '6px',
+                          padding: '6px 14px', cursor: 'pointer',
+                          fontSize: '12px', fontWeight: 600,
+                        }}
+                      >
+                        Ver expediente
+                      </button>
+                      <button
+                        onClick={() => navigate(`/pacientes/${p.id}/editar`)}
+                        style={{
+                          background: 'transparent', color: '#0003B8',
+                          border: '1.5px solid #B3D4FF', borderRadius: '6px',
+                          padding: '6px 14px', cursor: 'pointer',
+                          fontSize: '12px', fontWeight: 600,
+                        }}
+                      >
+                        Editar
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -163,9 +176,10 @@ export default function Pacientes() {
             disabled={pagina === 1}
             style={{
               padding: '7px 18px',
-              background: pagina === 1 ? '#eee' : '#0003B8',
-              color: pagina === 1 ? '#aaa' : 'white',
-              border: 'none', borderRadius: '7px',
+              background: pagina === 1 ? '#F0F6FF' : '#0003B8',
+              color: pagina === 1 ? 'rgba(0,3,184,0.3)' : 'white',
+              border: `1px solid ${pagina === 1 ? 'rgba(0,3,184,0.1)' : '#0003B8'}`,
+              borderRadius: '7px',
               cursor: pagina === 1 ? 'not-allowed' : 'pointer', fontWeight: 600,
             }}
           >
@@ -179,9 +193,10 @@ export default function Pacientes() {
             disabled={pagina === totalPaginas}
             style={{
               padding: '7px 18px',
-              background: pagina === totalPaginas ? '#eee' : '#0003B8',
-              color: pagina === totalPaginas ? '#aaa' : 'white',
-              border: 'none', borderRadius: '7px',
+              background: pagina === totalPaginas ? '#F0F6FF' : '#0003B8',
+              color: pagina === totalPaginas ? 'rgba(0,3,184,0.3)' : 'white',
+              border: `1px solid ${pagina === totalPaginas ? 'rgba(0,3,184,0.1)' : '#0003B8'}`,
+              borderRadius: '7px',
               cursor: pagina === totalPaginas ? 'not-allowed' : 'pointer', fontWeight: 600,
             }}
           >

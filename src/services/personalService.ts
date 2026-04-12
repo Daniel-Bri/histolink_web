@@ -1,4 +1,4 @@
-import api from '../api/axios'
+import { api } from '../api/axiosConfig'
 
 export type RolPersonal = 'medico' | 'enfermera' | 'admin'
 
@@ -36,7 +36,7 @@ export interface PersonalWritePayload {
 export const ITEM_MIN_SALUD_PATTERN = /^[A-Z]{3}-\d{3}$/
 
 export async function fetchPersonal(incluirInactivos = true) {
-  const { data } = await api.get<PersonalSalud[]>('/api/personal/', {
+  const { data } = await api.get<PersonalSalud[]>('personal/', {
     params: incluirInactivos ? { incluir_inactivos: 'true' } : {},
   })
   return data
@@ -48,7 +48,7 @@ export async function fetchPersonalById(id: number) {
 }
 
 export async function createPersonal(payload: PersonalWritePayload) {
-  const { data } = await api.post<PersonalSalud>('/api/personal/', payload)
+  const { data } = await api.post<PersonalSalud>('personal/', payload)
   return data
 }
 

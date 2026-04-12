@@ -1,4 +1,4 @@
-import api from '../api/axios'
+import { api } from '../api/axiosConfig'
 
 export interface UsuarioSinPerfil {
   id: number
@@ -9,6 +9,6 @@ export interface UsuarioSinPerfil {
 }
 
 export async function fetchUsuariosSinPerfil() {
-  const { data } = await api.get<UsuarioSinPerfil[]>('/api/usuarios-sin-perfil/')
+  const { data } = await api.get<UsuarioSinPerfil[]>('usuarios-sin-perfil/')
   return data
 }

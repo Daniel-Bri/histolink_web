@@ -1,14 +1,30 @@
-import { useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/axiosConfig'
 import { useAuth } from '../hooks/useAuth'
 import type { AuthUser } from '../services/authService'
 
+function ModIcon({ path, color }: { path: string; color: string }) {
+  const icons: Record<string, React.ReactElement> = {
+    users: <><circle cx="6" cy="5" r="2.5"/><path d="M1 13.5c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5"/><circle cx="12.5" cy="5.5" r="2"/><path d="M15 13.5c0-1.8-1.3-3.3-3-3.8"/></>,
+    clipboard: <><path d="M5 2H3a1 1 0 00-1 1v11a1 1 0 001 1h10a1 1 0 001-1V3a1 1 0 00-1-1h-2"/><rect x="5" y="1" width="6" height="2.5" rx="1"/><line x1="5" y1="8" x2="11" y2="8"/><line x1="5" y1="11" x2="9" y2="11"/></>,
+    file: <><path d="M9 1H4a1 1 0 00-1 1v12a1 1 0 001 1h8a1 1 0 001-1V5z"/><polyline points="9 1 9 5 13 5"/><line x1="5" y1="9" x2="11" y2="9"/><line x1="5" y1="12" x2="9" y2="12"/></>,
+    calendar: <><rect x="1" y="3" width="14" height="12" rx="1.5"/><line x1="1" y1="7" x2="15" y2="7"/><line x1="5" y1="1" x2="5" y2="5"/><line x1="11" y1="1" x2="11" y2="5"/></>,
+  }
+  return (
+    <svg viewBox="0 0 16 16" width="26" height="26"
+      fill="none" stroke={color} strokeWidth="1.4"
+      strokeLinecap="round" strokeLinejoin="round">
+      {icons[path]}
+    </svg>
+  )
+}
+
 const MODULOS = [
-  { titulo: 'Pacientes',  desc: 'Registro, búsqueda y expedientes',  icon: '👥', color: '#0003B8', ruta: '/pacientes' },
-  { titulo: 'Historial',  desc: 'Consultas y diagnósticos previos',   icon: '📋', color: '#00A896', ruta: '/historial', soon: true },
-  { titulo: 'Documentos', desc: 'Gestión documental clínica',         icon: '📄', color: '#0080FF', ruta: '/documentos', soon: true },
-  { titulo: 'Agenda',     desc: 'Citas y turnos programados',         icon: '📅', color: '#5C6BC0', ruta: '/agenda',     soon: true },
+  { titulo: 'Pacientes',  desc: 'Registro, búsqueda y expedientes',  icon: 'users',     color: '#0003B8', ruta: '/pacientes' },
+  { titulo: 'Historial',  desc: 'Consultas y diagnósticos previos',   icon: 'clipboard', color: '#00A896', ruta: '/historial', soon: true },
+  { titulo: 'Documentos', desc: 'Gestión documental clínica',         icon: 'file',      color: '#0003B8', ruta: '/documentos', soon: true },
+  { titulo: 'Agenda',     desc: 'Citas y turnos programados',         icon: 'calendar',  color: '#00A896', ruta: '/agenda',     soon: true },
 ]
 
 export default function Dashboard() {
@@ -40,7 +56,7 @@ export default function Dashboard() {
 
       {/* Saludo */}
       <div style={{ marginBottom: '32px' }}>
-        <p style={{ color: '#0080FF', fontSize: '14px', fontWeight: 600, margin: '0 0 4px 0' }}>
+        <p style={{ color: '#00A896', fontSize: '14px', fontWeight: 600, margin: '0 0 4px 0' }}>
           Bienvenido de vuelta
         </p>
         <h1 style={{ fontSize: '26px', color: '#0003B8', fontWeight: 700, margin: '0 0 8px 0' }}>
@@ -76,7 +92,7 @@ export default function Dashboard() {
               transition: 'box-shadow 0.15s',
             }}
           >
-            <div style={{ fontSize: '28px', marginBottom: '10px' }}>{mod.icon}</div>
+            <div style={{ marginBottom: '14px' }}><ModIcon path={mod.icon} color={mod.color} /></div>
             <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#0003B8', margin: '0 0 4px 0' }}>
               {mod.titulo}
             </h3>
@@ -84,9 +100,10 @@ export default function Dashboard() {
             {mod.soon && (
               <span style={{
                 position: 'absolute', top: '12px', right: '12px',
-                background: '#F0F6FF', color: '#B3D4FF',
+                background: '#F0F6FF', color: '#0003B8',
                 fontSize: '10px', fontWeight: 700, padding: '2px 8px',
-                borderRadius: '8px', border: '1px solid #B3D4FF',
+                borderRadius: '8px', border: '1px solid rgba(0,3,184,0.15)',
+                opacity: 0.6,
               }}>
                 Pronto
               </span>

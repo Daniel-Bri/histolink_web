@@ -9,6 +9,7 @@ import EnConstruccion from './pages/EnConstruccion'
 import Pacientes from './pages/Pacientes'
 import ExpedientePaciente from './pages/ExpedientePaciente'
 import EditarAntecedentes from './pages/EditarAntecedentes'
+import EditarPaciente from './pages/EditarPaciente'
 import PersonalList from './pages/GestionPersonal/PersonalList'
 import PersonalForm from './pages/GestionPersonal/PersonalForm'
 import RegistroPaciente from './pages/Pacientes/RegistroPaciente'
@@ -19,51 +20,23 @@ export default function App() {
       <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
-        
-        {/* Rutas protegidas */}
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/cambiar-password" element={
-          <ProtectedRoute>
-            <CambiarPassword />
-          </ProtectedRoute>
-        } />
-        <Route path="/personal" element={
-          <ProtectedRoute>
-            <PersonalList />
-          </ProtectedRoute>
-        } />
-        <Route path="/personal/nuevo" element={
-          <ProtectedRoute>
-            <PersonalForm />
-          </ProtectedRoute>
-        } />
-        <Route path="/personal/:id/editar" element={
-          <ProtectedRoute>
-            <PersonalForm />
-          </ProtectedRoute>
-        } />
 
-        {/* Rutas protegidas con sidebar */}
+        {/* Rutas protegidas con sidebar (Layout) */}
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route path="/dashboard"          element={<Dashboard />} />
           <Route path="/cambiar-password"   element={<CambiarPassword />} />
           <Route path="/pacientes"          element={<Pacientes />} />
+          <Route path="/pacientes/registro" element={<RegistroPaciente />} />
           <Route path="/pacientes/:id/expediente"           element={<ExpedientePaciente />} />
+          <Route path="/pacientes/:id/editar"               element={<EditarPaciente />} />
           <Route path="/pacientes/:id/antecedentes/editar"  element={<EditarAntecedentes />} />
+          <Route path="/personal"           element={<PersonalList />} />
+          <Route path="/personal/nuevo"     element={<PersonalForm />} />
+          <Route path="/personal/:id/editar" element={<PersonalForm />} />
           <Route path="/historial"  element={<EnConstruccion titulo="Historial Clínico" />} />
           <Route path="/documentos" element={<EnConstruccion titulo="Documentos" />} />
           <Route path="/agenda"     element={<EnConstruccion titulo="Agenda" />} />
         </Route>
-
-        <Route path="/pacientes/registro" element={
-          <ProtectedRoute>
-            <RegistroPaciente />
-          </ProtectedRoute>
-        } />
         
         {/* Redirige la raíz al dashboard */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />

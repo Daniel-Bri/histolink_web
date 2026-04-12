@@ -1,8 +1,4 @@
 import { useState, useEffect } from 'react'
-<<<<<<< HEAD
-import api from '../api/axios'
-=======
->>>>>>> origin/Araceli
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
@@ -21,16 +17,8 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-<<<<<<< HEAD
-      const res = await api.post('/api/auth/login/', { username, password })
-      localStorage.setItem('access_token', res.data.access)
-      localStorage.setItem('refresh_token', res.data.refresh)
-      localStorage.setItem('user', JSON.stringify(res.data.user))
-      navigate('/dashboard')
-=======
       await login(username, password)
       navigate('/dashboard', { replace: true })
->>>>>>> origin/Araceli
     } catch {
       setError('Usuario o contraseña incorrectos')
     }

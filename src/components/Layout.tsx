@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import api from '../api/axios'
+import { useAuth } from '../hooks/useAuth'
 import { getStoredUser } from '../utils/auth'
 
 // ── Iconos SVG monocromáticos ─────────────────────────────────────────────
@@ -174,6 +174,7 @@ const ROL_COLORS: Record<string, { bg: string; text: string }> = {
 export default function Layout() {
   const navigate   = useNavigate()
   const location   = useLocation()
+  const { logout } = useAuth()
   const user       = getStoredUser()
   const rol        = user?.groups?.[0] ?? 'Sin rol'
   const rolColor   = ROL_COLORS[rol] ?? { bg: 'rgba(148,163,184,0.18)', text: '#94A3B8' }
@@ -181,24 +182,15 @@ export default function Layout() {
   const [hovered, setHovered]     = useState<string | null>(null)
   const [collapsed, setCollapsed] = useState(false)
 
-  const handleLogout = async () => {
-    try {
-      await api.post('/api/auth/logout/', { refresh: localStorage.getItem('refresh_token') })
-    } catch { /* ignorar */ } finally {
-      localStorage.clear()
-      navigate('/login')
-    }
-  }
-
   const isActive = (path?: string) =>
     !!path && (location.pathname === path || location.pathname.startsWith(path + '/'))
 
   // Colores base del sidebar
-  const BG       = '#0D1B2A'
-  const DIVIDER  = 'rgba(255,255,255,0.07)'
-  const ACTIVE_BG     = 'rgba(0,168,150,0.13)'
+  const BG       = '#122268'
+  const DIVIDER  = 'rgba(255,255,255,0.15)'
+  const ACTIVE_BG     = 'rgba(0,168,150,0.22)'
   const ACTIVE_BORDER = '#00A896'
-  const HOVER_BG      = 'rgba(255,255,255,0.05)'
+  const HOVER_BG      = 'rgba(255,255,255,0.09)'
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Segoe UI', sans-serif" }}>
@@ -253,7 +245,7 @@ export default function Layout() {
             <p style={{ color: 'white', fontWeight: 700, fontSize: '15px', margin: 0, lineHeight: 1, whiteSpace: 'nowrap' }}>
               HistoLink
             </p>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', margin: '3px 0 0', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '10px', margin: '3px 0 0', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
               SISTEMA CLÍNICO
             </p>
           </div>
@@ -263,12 +255,12 @@ export default function Layout() {
             title="Cerrar menú"
             style={{
               background: 'transparent', border: 'none',
-              color: 'rgba(255,255,255,0.45)', cursor: 'pointer',
+              color: 'rgba(255,255,255,0.65)', cursor: 'pointer',
               padding: '4px', borderRadius: '6px', flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.9)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
+            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.95)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.65)')}
           >
             <Icon name="chevron-left" size={16} />
           </button>
@@ -290,7 +282,7 @@ export default function Layout() {
           <p style={{ color: '#ffffff', fontWeight: 600, fontSize: '13px', margin: '0 0 2px' }}>
             {user?.first_name} {user?.last_name}
           </p>
-          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '11px', margin: '0 0 8px' }}>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px', margin: '0 0 8px' }}>
             {user?.username}
           </p>
           <span style={{
@@ -316,7 +308,7 @@ export default function Layout() {
 
                 {/* Encabezado de sección */}
                 <p style={{
-                  color: 'rgba(255,255,255,0.5)',
+                  color: 'rgba(255,255,255,0.65)',
                   fontSize: '10px', fontWeight: 700,
                   letterSpacing: '0.08em', textTransform: 'uppercase',
                   padding: '14px 18px 5px', margin: 0,
@@ -342,10 +334,10 @@ export default function Layout() {
                         color: active
                           ? '#ffffff'
                           : item.soon
-                            ? 'rgba(255,255,255,0.45)'
+                            ? 'rgba(255,255,255,0.55)'
                             : hover
                               ? '#ffffff'
-                              : 'rgba(255,255,255,0.75)',
+                              : 'rgba(255,255,255,0.88)',
                         fontSize: '13px', fontWeight: active ? 600 : 500,
                         cursor: item.soon ? 'default' : 'pointer',
                         textAlign: 'left', transition: 'background 0.12s, color 0.12s',
@@ -374,9 +366,9 @@ export default function Layout() {
 
         {/* Acciones inferiores */}
         <div style={{
-          padding: '10px 12px 14px',
+          padding: '8px 0 12px',
           borderTop: `1px solid ${DIVIDER}`,
-          display: 'flex', flexDirection: 'column', gap: '5px',
+          display: 'flex', flexDirection: 'column',
           flexShrink: 0,
         }}>
           <button
@@ -384,36 +376,36 @@ export default function Layout() {
             onMouseEnter={() => setHovered('__pwd')}
             onMouseLeave={() => setHovered(null)}
             style={{
-              display: 'flex', alignItems: 'center', gap: '9px',
-              padding: '8px 12px', width: '100%',
-              background: hovered === '__pwd' ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '8px',
-              color: 'rgba(255,255,255,0.75)',
-              fontSize: '12.5px', cursor: 'pointer',
-              transition: 'background 0.12s',
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '8px 18px', width: '100%',
+              background: hovered === '__pwd' ? HOVER_BG : 'transparent',
+              border: 'none',
+              borderLeft: '3px solid transparent',
+              color: hovered === '__pwd' ? '#ffffff' : 'rgba(255,255,255,0.82)',
+              fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+              textAlign: 'left', transition: 'background 0.12s, color 0.12s',
             }}
           >
-            <Icon name="key" size={14} />
+            <Icon name="key" size={15} />
             <span>Cambiar contraseña</span>
           </button>
 
           <button
-            onClick={handleLogout}
+            onClick={() => void logout()}
             onMouseEnter={() => setHovered('__logout')}
             onMouseLeave={() => setHovered(null)}
             style={{
-              display: 'flex', alignItems: 'center', gap: '9px',
-              padding: '8px 12px', width: '100%',
-              background: hovered === '__logout' ? 'rgba(239,68,68,0.14)' : 'rgba(239,68,68,0.07)',
-              border: '1px solid rgba(239,68,68,0.18)',
-              borderRadius: '8px',
-              color: '#FCA5A5',
-              fontSize: '12.5px', cursor: 'pointer',
-              transition: 'background 0.12s',
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '8px 18px', width: '100%',
+              background: hovered === '__logout' ? 'rgba(239,68,68,0.12)' : 'transparent',
+              border: 'none',
+              borderLeft: '3px solid transparent',
+              color: hovered === '__logout' ? '#FCA5A5' : 'rgba(255,180,180,0.85)',
+              fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+              textAlign: 'left', transition: 'background 0.12s, color 0.12s',
             }}
           >
-            <Icon name="logout" size={14} />
+            <Icon name="logout" size={15} />
             <span>Cerrar sesión</span>
           </button>
         </div>
