@@ -81,9 +81,10 @@ export default function RegistroPacienteForm({ onSuccess, onCancel }: Props) {
       onSuccess()
     } catch (err) {
       if (isAxiosError(err)) {
-        const status = err.response?.status
+        const { response } = err
+        const status = response?.status
         if (status === 400) {
-          const { fields, general } = parseDrfErrorResponse(err.response.data)
+          const { fields, general } = parseDrfErrorResponse(response?.data)
 
           // El serializer usa alias (nombre/apellido/genero); mapearlos a los campos del form
           const ALIAS_MAP: Partial<Record<string, keyof RegistroPacienteFormValues>> = {
