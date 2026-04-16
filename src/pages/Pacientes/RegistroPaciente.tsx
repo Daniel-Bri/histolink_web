@@ -1,16 +1,11 @@
-import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { hasRole } from '../../utils/auth'
 import RegistroPacienteForm from './RegistroPacienteForm'
+
+const PUEDE_REGISTRAR = () => hasRole('Médico', 'Enfermera', 'Administrativo')
 
 export default function RegistroPaciente() {
   const navigate = useNavigate()
-  const [toast, setToast] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!toast) return
-    const id = window.setTimeout(() => setToast(null), 5000)
-    return () => window.clearTimeout(id)
-  }, [toast])
 
   return (
     <div style={{ minHeight: '100vh', background: '#F0F6FF' }}>
@@ -70,36 +65,29 @@ export default function RegistroPaciente() {
             boxShadow: '0 2px 8px rgba(0,3,184,0.06)',
           }}
         >
-          <RegistroPacienteForm
-            onSuccess={() => setToast('Paciente registrado correctamente.')}
-            onCancel={() => navigate('/pacientes')}
-          />
+          {PUEDE_REGISTRAR() ? (
+            <RegistroPacienteForm
+              onSuccess={() => navigate('/pacientes')}
+              onCancel={() => navigate('/pacientes')}
+            />
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px 24px', color: '#555' }}>
+              <div style={{ fontSize: '40px', marginBottom: '12px' }}>🔒</div>
+              <p style={{ fontWeight: 600, color: '#B71C1C', fontSize: '15px', marginBottom: '8px' }}>
+                Sin permiso
+              </p>
+              <p style={{ fontSize: '14px', marginBottom: '20px' }}>
+                Solo <strong>Médicos</strong>, <strong>Enfermeras</strong> y personal{' '}
+                <strong>Administrativo</strong> pueden registrar nuevos pacientes.
+              </p>
+              <button type="button" onClick={() => navigate('/pacientes')}>
+                Volver a pacientes
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {toast ? (
-        <div
-          role="status"
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 50,
-            padding: '14px 22px',
-            borderRadius: '10px',
-            background: '#00A896',
-            color: 'white',
-            fontWeight: 600,
-            fontSize: '14px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-            maxWidth: '90vw',
-            textAlign: 'center',
-          }}
-        >
-          {toast}
-        </div>
-      ) : null}
     </div>
   )
 }

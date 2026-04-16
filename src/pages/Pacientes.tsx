@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/axiosConfig'
-
+import { hasRole } from '../utils/auth'
 import type { Paciente } from '../types/paciente.types'
+
+const PUEDE_REGISTRAR_PACIENTE = () => hasRole('Médico', 'Enfermera', 'Administrativo')
 
 interface PaginatedResponse {
   count: number
@@ -58,9 +60,11 @@ export default function Pacientes() {
             {total > 0 ? `${total} paciente${total !== 1 ? 's' : ''} registrado${total !== 1 ? 's' : ''}` : 'Busca o lista todos los pacientes'}
           </p>
         </div>
-        <button type="button" onClick={() => navigate('/pacientes/registro')}>
-          Registrar nuevo paciente
-        </button>
+        {PUEDE_REGISTRAR_PACIENTE() && (
+          <button type="button" onClick={() => navigate('/pacientes/registro')}>
+            Registrar nuevo paciente
+          </button>
+        )}
       </div>
 
       {/* Buscador */}

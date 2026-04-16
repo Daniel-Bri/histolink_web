@@ -297,71 +297,77 @@ export default function Layout() {
 
         {/* Navegación */}
         <nav style={{ flex: 1, padding: '6px 0 12px', overflowY: 'auto' }}>
-          {NAV.map(section => {
-            const visible = section.items.filter(item =>
-              !item.roles || item.roles.some(r => user?.groups?.includes(r))
-            )
-            if (visible.length === 0) return null
+          {NAV.map(section => (
+            <div key={section.title} style={{ marginBottom: '2px' }}>
 
-            return (
-              <div key={section.title} style={{ marginBottom: '2px' }}>
+              {/* Encabezado de sección */}
+              <p style={{
+                color: 'rgba(255,255,255,0.65)',
+                fontSize: '10px', fontWeight: 700,
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                padding: '14px 18px 5px', margin: 0,
+              }}>
+                {section.title}
+              </p>
 
-                {/* Encabezado de sección */}
-                <p style={{
-                  color: 'rgba(255,255,255,0.65)',
-                  fontSize: '10px', fontWeight: 700,
-                  letterSpacing: '0.08em', textTransform: 'uppercase',
-                  padding: '14px 18px 5px', margin: 0,
-                }}>
-                  {section.title}
-                </p>
-
-                {visible.map(item => {
-                  const active = isActive(item.path)
-                  const hover  = hovered === item.label
-                  return (
-                    <button
-                      key={item.label}
-                      onClick={() => { if (item.path && !item.soon) navigate(item.path) }}
-                      onMouseEnter={() => !item.soon && setHovered(item.label)}
-                      onMouseLeave={() => setHovered(null)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '10px',
-                        width: '100%', padding: '8px 18px',
-                        background: active ? ACTIVE_BG : hover ? HOVER_BG : 'transparent',
-                        border: 'none',
-                        borderLeft: `3px solid ${active ? ACTIVE_BORDER : 'transparent'}`,
-                        color: active
-                          ? '#ffffff'
-                          : item.soon
-                            ? 'rgba(255,255,255,0.55)'
-                            : hover
-                              ? '#ffffff'
-                              : 'rgba(255,255,255,0.88)',
-                        fontSize: '13px', fontWeight: active ? 600 : 500,
-                        cursor: item.soon ? 'default' : 'pointer',
-                        textAlign: 'left', transition: 'background 0.12s, color 0.12s',
-                      }}
-                    >
-                      <Icon name={item.icon} size={15} />
-                      <span style={{ flex: 1 }}>{item.label}</span>
-                      {item.soon && (
-                        <span style={{
-                          fontSize: '9px', fontWeight: 600,
-                          background: 'rgba(255,255,255,0.1)',
-                          color: 'rgba(255,255,255,0.5)',
-                          padding: '2px 7px', borderRadius: '20px',
-                          letterSpacing: '0.04em',
-                        }}>
-                          Pronto
-                        </span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            )
-          })}
+              {section.items.map(item => {
+                const hasAccess = !item.roles || item.roles.some(r => user?.groups?.includes(r))
+                const disabled  = item.soon || !hasAccess
+                const active    = isActive(item.path)
+                const hover     = hovered === item.label
+                return (
+                  <button
+                    key={item.label}
+                    onClick={() => { if (item.path && !disabled) navigate(item.path) }}
+                    onMouseEnter={() => !disabled && setHovered(item.label)}
+                    onMouseLeave={() => setHovered(null)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      width: '100%', padding: '8px 18px',
+                      background: active ? ACTIVE_BG : hover ? HOVER_BG : 'transparent',
+                      border: 'none',
+                      borderLeft: `3px solid ${active ? ACTIVE_BORDER : 'transparent'}`,
+                      color: active
+                        ? '#ffffff'
+                        : disabled
+                          ? 'rgba(255,255,255,0.4)'
+                          : hover
+                            ? '#ffffff'
+                            : 'rgba(255,255,255,0.88)',
+                      fontSize: '13px', fontWeight: active ? 600 : 500,
+                      cursor: disabled ? 'default' : 'pointer',
+                      textAlign: 'left', transition: 'background 0.12s, color 0.12s',
+                    }}
+                  >
+                    <Icon name={item.icon} size={15} />
+                    <span style={{ flex: 1 }}>{item.label}</span>
+                    {item.soon && (
+                      <span style={{
+                        fontSize: '9px', fontWeight: 600,
+                        background: 'rgba(255,255,255,0.1)',
+                        color: 'rgba(255,255,255,0.5)',
+                        padding: '2px 7px', borderRadius: '20px',
+                        letterSpacing: '0.04em',
+                      }}>
+                        Pronto
+                      </span>
+                    )}
+                    {!item.soon && !hasAccess && (
+                      <span style={{
+                        fontSize: '9px', fontWeight: 600,
+                        background: 'rgba(255,255,255,0.08)',
+                        color: 'rgba(255,255,255,0.4)',
+                        padding: '2px 7px', borderRadius: '20px',
+                        letterSpacing: '0.04em',
+                      }}>
+                        Sin acceso
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Acciones inferiores */}

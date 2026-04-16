@@ -80,11 +80,39 @@ export default function RegistroPacienteForm({ onSuccess, onCancel }: Props) {
       form.reset()
       onSuccess()
     } catch (err) {
-      if (isAxiosError(err) && err.response?.status === 400) {
-        const { fields, general } = parseDrfErrorResponse(err.response.data)
-        form.setServerFieldErrors(fields as Partial<Record<keyof RegistroPacienteFormValues, string>>)
-        form.setGeneralErrors(general)
-        return
+      if (isAxiosError(err)) {
+        const status = err.response?.status
+        if (status === 400) {
+          const { fields, general } = parseDrfErrorResponse(err.response.data)
+
+          // El serializer usa alias (nombre/apellido/genero); mapearlos a los campos del form
+          const ALIAS_MAP: Partial<Record<string, keyof RegistroPacienteFormValues>> = {
+            nombre: 'nombres',
+            apellido: 'apellido_paterno',
+            genero: 'sexo',
+          }
+          const remapped: Partial<Record<keyof RegistroPacienteFormValues, string>> = {}
+          for (const [key, msg] of Object.entries(fields)) {
+            const formKey = (ALIAS_MAP[key] ?? key) as keyof RegistroPacienteFormValues
+            remapped[formKey] = msg
+          }
+
+          form.setServerFieldErrors(remapped)
+          if (general.length) {
+            form.setGeneralErrors(general)
+          } else if (Object.keys(remapped).length === 0) {
+            form.setGeneralErrors(['El servidor rechazó los datos. Revisa los campos e intenta de nuevo.'])
+          }
+          return
+        }
+        if (status === 403) {
+          form.setGeneralErrors(['No tienes permiso para registrar pacientes. Contacta al administrador.'])
+          return
+        }
+        if (status === 401) {
+          form.setGeneralErrors(['Tu sesión expiró. Por favor vuelve a iniciar sesión.'])
+          return
+        }
       }
       form.setGeneralErrors(['Error de red o del servidor. Intente nuevamente.'])
     } finally {
@@ -101,8 +129,6 @@ export default function RegistroPacienteForm({ onSuccess, onCancel }: Props) {
 
   return (
     <form onSubmit={(e) => void handleSubmit(e)} noValidate>
-      <ErrorAlert messages={form.nonFieldErrors} />
-
       <div
         style={{
           display: 'grid',
@@ -211,6 +237,8 @@ export default function RegistroPacienteForm({ onSuccess, onCancel }: Props) {
           />
         </div>
       </div>
+
+      <ErrorAlert messages={form.nonFieldErrors} />
 
       <div style={{ display: 'flex', gap: '12px', marginTop: '24px', flexWrap: 'wrap' }}>
         <LoadingButton type="submit" loading={loading} disabled={!isValid}>
