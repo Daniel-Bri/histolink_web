@@ -136,10 +136,10 @@ export function toCreatePayload(values: RegistroPacienteFormValues): PacienteCre
   const ci_comp = trim(values.ci_complemento).toUpperCase()
   const payload: PacienteCreatePayload = {
     ci: trim(values.ci),
-    nombres: trim(values.nombres),
-    apellido_paterno: trim(values.apellido_paterno),
+    nombre: trim(values.nombres),
+    apellido: trim(values.apellido_paterno),
     fecha_nacimiento: values.fecha_nacimiento,
-    sexo: values.sexo as SexoPaciente,
+    genero: values.sexo as SexoPaciente,
   }
   if (ci_comp) payload.ci_complemento = ci_comp
   const am = trim(values.apellido_materno)

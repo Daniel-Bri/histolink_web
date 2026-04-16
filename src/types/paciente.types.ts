@@ -18,11 +18,11 @@ export interface Paciente {
 export interface PacienteCreatePayload {
   ci: string
   ci_complemento?: string
-  nombres: string
-  apellido_paterno: string
+  nombre: string
+  apellido: string
   apellido_materno?: string
   fecha_nacimiento: string
-  sexo: SexoPaciente
+  genero: SexoPaciente
   email?: string
   telefono?: string
   direccion?: string
