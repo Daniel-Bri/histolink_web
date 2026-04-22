@@ -4,6 +4,7 @@ import { api } from '../api/axiosConfig'
 import { useAuth } from '../hooks/useAuth'
 import type { AuthUser } from '../services/authService'
 
+
 function ModIcon({ path, color }: { path: string; color: string }) {
   const icons: Record<string, React.ReactElement> = {
     users: <><circle cx="6" cy="5" r="2.5"/><path d="M1 13.5c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5"/><circle cx="12.5" cy="5.5" r="2"/><path d="M15 13.5c0-1.8-1.3-3.3-3-3.8"/></>,
@@ -53,6 +54,55 @@ export default function Dashboard() {
 
   return (
     <div style={{ padding: '32px' }}>
+
+      {/* Banner de clínica */}
+      {user.tenant && (
+        <div style={{
+          background: 'linear-gradient(135deg, #0003B8 0%, #0a1f8f 100%)',
+          borderRadius: '16px',
+          padding: '20px 24px',
+          marginBottom: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          boxShadow: '0 4px 20px rgba(0,3,184,0.18)',
+        }}>
+          <div style={{
+            width: 48, height: 48, flexShrink: 0,
+            background: 'rgba(255,255,255,0.12)',
+            borderRadius: '12px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none"
+              stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+              <line x1="12" y1="5" x2="12" y2="9"/>
+              <line x1="10" y1="7" x2="14" y2="7"/>
+            </svg>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '11px', fontWeight: 600,
+              letterSpacing: '0.7px', margin: '0 0 3px 0', textTransform: 'uppercase' }}>
+              Establecimiento de Salud
+            </p>
+            <h2 style={{ color: 'white', fontSize: '18px', fontWeight: 700,
+              margin: 0, letterSpacing: '0.1px', overflow: 'hidden',
+              textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user.tenant.nombre}
+            </h2>
+          </div>
+          <div style={{
+            background: 'rgba(0,168,150,0.25)',
+            border: '1px solid rgba(0,168,150,0.5)',
+            borderRadius: '20px', padding: '4px 14px',
+            color: '#6EFFF4', fontSize: '12px', fontWeight: 600,
+            flexShrink: 0,
+          }}>
+            Activo
+          </div>
+        </div>
+      )}
 
       {/* Saludo */}
       <div style={{ marginBottom: '32px' }}>
