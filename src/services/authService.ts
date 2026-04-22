@@ -14,6 +14,12 @@ export const STORAGE_KEYS = {
   user: 'user',
 } as const
 
+export interface AuthTenant {
+  id: number
+  nombre: string
+  slug: string
+}
+
 export interface AuthUser {
   id: number
   username: string
@@ -21,6 +27,7 @@ export interface AuthUser {
   last_name: string
   email: string
   groups: string[]
+  tenant: AuthTenant | null
 }
 
 export interface LoginResponse {
