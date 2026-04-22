@@ -4,18 +4,6 @@ import { api } from '../api/axiosConfig'
 import { useAuth } from '../hooks/useAuth'
 import type { AuthUser } from '../services/authService'
 
-function HospitalIcon({ color }: { color: string }) {
-  return (
-    <svg viewBox="0 0 16 16" width="14" height="14" fill="none"
-      stroke={color} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="1" y="4" width="14" height="11" rx="1"/>
-      <path d="M5 15V9h6v6"/>
-      <path d="M8 2v4M6 4h4"/>
-      <line x1="4" y1="8" x2="4" y2="8.01"/>
-      <line x1="12" y1="8" x2="12" y2="8.01"/>
-    </svg>
-  )
-}
 
 function ModIcon({ path, color }: { path: string; color: string }) {
   const icons: Record<string, React.ReactElement> = {
