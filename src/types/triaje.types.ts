@@ -22,12 +22,36 @@ export interface PacienteBrief {
   ci: string
 }
 
+export interface TriajeResumen {
+  id: number
+  nivel_urgencia: NivelUrgencia
+  nivel_sugerido_ia: NivelUrgencia | null
+  fue_sobreescrito: boolean
+  reglas_duras_aplicadas: boolean
+  motivo_consulta_triaje: string
+  hora_triaje: string
+  peso_kg: string | null
+  talla_cm: string | null
+  frecuencia_cardiaca: number | null
+  frecuencia_respiratoria: number | null
+  presion_sistolica: number | null
+  presion_diastolica: number | null
+  temperatura_celsius: string | null
+  saturacion_oxigeno: number | null
+  escala_dolor: number | null
+  glasgow: number | null
+  glucemia: string | null
+  observaciones: string | null
+  justificacion_override: string | null
+}
+
 export interface FichaBrief {
   id: number
   correlativo: string
   paciente: PacienteBrief
   estado: string
   fecha_apertura: string
+  triaje_resumen: TriajeResumen | null
 }
 
 export interface ClasificarInput {
