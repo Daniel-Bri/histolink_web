@@ -81,7 +81,11 @@ function AIResultPanel({
     <div style={{ ...CARD, border: `2px solid ${colors.border}` }}>
       <p style={{ ...SECTION_TITLE, borderColor: colors.border }}>
         🤖 Resultado de la IA
-        {result.error && <span style={{ color: '#EA580C', fontWeight: 400, fontSize: '11px', marginLeft: '8px' }}>(modo degradado)</span>}
+        {(result.ml_degradado || result.error) && (
+          <span style={{ color: '#EA580C', fontWeight: 400, fontSize: '11px', marginLeft: '8px' }}>
+            (clasificación por signos vitales)
+          </span>
+        )}
       </p>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
@@ -101,9 +105,9 @@ function AIResultPanel({
         </div>
 
         <div style={{ flex: 1 }}>
-          {result.confianza_pct !== '' && result.confianza_pct !== undefined && (
+          {result.confianza_pct && result.confianza_pct !== '—' && (
             <p style={{ fontSize: '13px', color: '#475569', margin: '0 0 4px' }}>
-              Confianza: <strong>{result.confianza_pct}%</strong>
+              Confianza: <strong>{result.confianza_pct}</strong>
             </p>
           )}
           {reglaDura && (

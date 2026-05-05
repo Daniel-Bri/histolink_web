@@ -43,9 +43,10 @@ export interface ClasificarResult {
   nivel_sugerido: NivelUrgencia
   nivel_numerico: number
   reglas_duras_aplicadas: boolean
-  confianza_pct: string | number
+  confianza_pct: string
   ajuste_signos: string
   probabilidades: Record<string, number>
+  ml_degradado?: boolean
   error?: string
 }
 
