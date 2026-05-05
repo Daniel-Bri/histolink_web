@@ -146,6 +146,7 @@ const NAV: NavSection[] = [
     items: [
       { label: 'Solicitar estudio', path: '/estudios/solicitud', icon: 'clipboard', roles: ['Médico', 'Administrativo', 'Director'] },
       { label: 'Cola laboratorio',  path: '/estudios/cola-laboratorio', icon: 'flask', roles: ['Laboratorio', 'Administrativo', 'Director'] },
+      { label: 'Reportes producción', path: '/reportes/produccion', icon: 'activity', roles: ['ADMIN', 'Admin', 'Administrativo', 'Auditor', 'Médico'] },
       { label: 'Historial Clínico', path: '/historial',  icon: 'clipboard', soon: true },
       { label: 'Documentos',        path: '/documentos', icon: 'file',      soon: true },
       { label: 'Agenda',            path: '/agenda',     icon: 'calendar',  soon: true },

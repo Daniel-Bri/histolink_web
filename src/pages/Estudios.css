@@ -307,6 +307,191 @@
   border: 1px solid #a9b8ee;
 }
 
+.reportes-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.reportes-full {
+  grid-column: 1 / -1;
+}
+
+.reportes-card-filtros {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.reportes-actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.reportes-smart-box {
+  margin-top: 12px;
+  border: 1px solid #dce6ff;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.reportes-smart-toggle {
+  width: 100%;
+  text-align: left;
+  background: #f7faff;
+  border: none;
+  border-radius: 12px;
+  padding: 11px 12px;
+  color: #0f2c7a;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reportes-smart-content {
+  padding: 12px;
+}
+
+.reportes-smart-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.reportes-mic-btn {
+  border: 1px solid #8fb0f5;
+  background: #eef4ff;
+  color: #0f2c7a;
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-width: 92px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.reportes-mic-btn-listening {
+  border-color: #efc0cc;
+  background: #fff0f4;
+  color: #8a1a33;
+}
+
+.reportes-mic-btn:disabled {
+  opacity: 0.8;
+  cursor: default;
+}
+
+.reportes-smart-state {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #4f648f;
+}
+
+.reportes-smart-error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #8b1e1e;
+}
+
+.reportes-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.reportes-export {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.reportes-export .btn-secondary:first-child {
+  border-color: #9bc9ff;
+  color: #1d4b8f;
+}
+
+.reportes-export .btn-secondary:nth-child(2) {
+  border-color: #9ad7c3;
+  color: #116f58;
+}
+
+.reportes-export .btn-primary {
+  background: #0003b8;
+}
+
+.reportes-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.reportes-kpi-card {
+  background: #ffffff;
+  border: 1px solid #dce6ff;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  min-height: 116px;
+  box-shadow: 0 6px 16px rgba(0, 3, 184, 0.08);
+}
+
+.reportes-kpi-card span {
+  color: #5f6f92;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.reportes-kpi-card strong {
+  color: #0f2c7a;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
+
+.reportes-select {
+  height: 42px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #1f2f54;
+  line-height: 1.2;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+.reportes-select:hover {
+  border-color: #93c5fd;
+}
+
+.reportes-select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+  background: #ffffff;
+}
+
+.reportes-empty-state {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f8fbff;
+  border: 1px solid #dbe6ff;
+  color: #43608f;
+  font-size: 13px;
+}
+
 @media (max-width: 1024px) {
   .estudios-grid {
     grid-template-columns: 1fr;
@@ -317,6 +502,14 @@
   }
 
   .tipo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .reportes-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .reportes-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -352,6 +545,29 @@
 
   .btn-primary,
   .btn-secondary {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .reportes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reportes-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reportes-actions,
+  .reportes-export {
+    flex-direction: column;
+  }
+
+  .reportes-smart-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .reportes-mic-btn {
     width: 100%;
     min-width: 0;
   }
