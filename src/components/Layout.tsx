@@ -33,6 +33,13 @@ function Icon({ name, size = 15 }: { name: string; size?: number }) {
         <line x1="5" y1="11" x2="9" y2="11" />
       </svg>
     ),
+    flask: (
+      <svg viewBox="0 0 16 16" style={s} {...p}>
+        <path d="M6 1.5h4" />
+        <path d="M7 1.5v4l-4.2 7a1.1 1.1 0 001 1.7h8.4a1.1 1.1 0 001-1.7l-4.2-7v-4" />
+        <path d="M5.2 9h5.6" />
+      </svg>
+    ),
     file: (
       <svg viewBox="0 0 16 16" style={s} {...p}>
         <path d="M9 1H4a1 1 0 00-1 1v12a1 1 0 001 1h8a1 1 0 001-1V5z" />
@@ -137,7 +144,13 @@ const NAV: NavSection[] = [
   {
     title: 'Atención Clínica',
     items: [
+<<<<<<< HEAD
       { label: 'Urgencias',         path: '/urgencias',  icon: 'activity', roles: ['Médico', 'Enfermera', 'Administrativo', 'Director'] },
+=======
+      { label: 'Solicitar estudio', path: '/estudios/solicitud', icon: 'clipboard', roles: ['Médico', 'Administrativo', 'Director'] },
+      { label: 'Cola laboratorio',  path: '/estudios/cola-laboratorio', icon: 'flask', roles: ['Laboratorio', 'Administrativo', 'Director'] },
+      { label: 'Reportes producción', path: '/reportes/produccion', icon: 'activity', roles: ['ADMIN', 'Admin', 'Administrativo', 'Auditor', 'Médico'] },
+>>>>>>> origin/alejandra
       { label: 'Historial Clínico', path: '/historial',  icon: 'clipboard', soon: true },
       { label: 'Documentos',        path: '/documentos', icon: 'file',      soon: true },
       { label: 'Agenda',            path: '/agenda',     icon: 'calendar',  soon: true },

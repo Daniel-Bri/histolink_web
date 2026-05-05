@@ -13,8 +13,15 @@ import EditarPaciente from './pages/EditarPaciente'
 import PersonalList from './pages/GestionPersonal/PersonalList'
 import PersonalForm from './pages/GestionPersonal/PersonalForm'
 import RegistroPaciente from './pages/Pacientes/RegistroPaciente'
+<<<<<<< HEAD
 import UrgenciasPage from './pages/Urgencias'
 import TriajeForm from './pages/Urgencias/TriajeForm'
+=======
+import SolicitudEstudios from './pages/SolicitudEstudios'
+import ColaLaboratorio from './pages/ColaLaboratorio'
+import ReportesProduccion from './pages/ReportesProduccion'
+import './pages/Estudios.css'
+>>>>>>> origin/alejandra
 
 export default function App() {
   return (
@@ -40,6 +47,9 @@ export default function App() {
           <Route path="/historial"  element={<EnConstruccion titulo="Historial Clínico" />} />
           <Route path="/documentos" element={<EnConstruccion titulo="Documentos" />} />
           <Route path="/agenda"     element={<EnConstruccion titulo="Agenda" />} />
+          <Route path="/estudios/solicitud" element={<SolicitudEstudios />} />
+          <Route path="/estudios/cola-laboratorio" element={<ColaLaboratorio />} />
+          <Route path="/reportes/produccion" element={<ReportesProduccion />} />
         </Route>
         
         {/* Redirige la raíz al dashboard */}
