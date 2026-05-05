@@ -13,15 +13,12 @@ import EditarPaciente from './pages/EditarPaciente'
 import PersonalList from './pages/GestionPersonal/PersonalList'
 import PersonalForm from './pages/GestionPersonal/PersonalForm'
 import RegistroPaciente from './pages/Pacientes/RegistroPaciente'
-<<<<<<< HEAD
 import UrgenciasPage from './pages/Urgencias'
 import TriajeForm from './pages/Urgencias/TriajeForm'
-=======
 import SolicitudEstudios from './pages/SolicitudEstudios'
 import ColaLaboratorio from './pages/ColaLaboratorio'
 import ReportesProduccion from './pages/ReportesProduccion'
 import './pages/Estudios.css'
->>>>>>> origin/alejandra
 
 export default function App() {
   return (
