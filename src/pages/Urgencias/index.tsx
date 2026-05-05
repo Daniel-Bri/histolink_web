@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fichaService } from '../../services/fichaService'
-import { crearPaciente, parseDrfErrorResponse } from '../../services/pacienteService'
+import { parseDrfErrorResponse } from '../../services/pacienteService'
 import { api } from '../../api/axiosConfig'
 import type { FichaBrief } from '../../types/triaje.types'
 import type { Paciente } from '../../types/paciente.types'
