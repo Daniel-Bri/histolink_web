@@ -13,6 +13,8 @@ import EditarPaciente from './pages/EditarPaciente'
 import PersonalList from './pages/GestionPersonal/PersonalList'
 import PersonalForm from './pages/GestionPersonal/PersonalForm'
 import RegistroPaciente from './pages/Pacientes/RegistroPaciente'
+import UrgenciasPage from './pages/Urgencias'
+import TriajeForm from './pages/Urgencias/TriajeForm'
 
 export default function App() {
   return (
@@ -33,6 +35,8 @@ export default function App() {
           <Route path="/personal"           element={<PersonalList />} />
           <Route path="/personal/nuevo"     element={<PersonalForm />} />
           <Route path="/personal/:id/editar" element={<PersonalForm />} />
+          <Route path="/urgencias"                    element={<UrgenciasPage />} />
+          <Route path="/urgencias/:fichaId/triaje"  element={<TriajeForm />} />
           <Route path="/historial"  element={<EnConstruccion titulo="Historial Clínico" />} />
           <Route path="/documentos" element={<EnConstruccion titulo="Documentos" />} />
           <Route path="/agenda"     element={<EnConstruccion titulo="Agenda" />} />

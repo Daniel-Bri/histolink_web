@@ -137,6 +137,7 @@ const NAV: NavSection[] = [
   {
     title: 'Atención Clínica',
     items: [
+      { label: 'Urgencias',         path: '/urgencias',  icon: 'activity', roles: ['Médico', 'Enfermera', 'Administrativo', 'Director'] },
       { label: 'Historial Clínico', path: '/historial',  icon: 'clipboard', soon: true },
       { label: 'Documentos',        path: '/documentos', icon: 'file',      soon: true },
       { label: 'Agenda',            path: '/agenda',     icon: 'calendar',  soon: true },
