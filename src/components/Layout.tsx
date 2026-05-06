@@ -151,6 +151,7 @@ const NAV: NavSection[] = [
       { label: 'Historial Clínico', path: '/historial',  icon: 'clipboard', soon: true },
       { label: 'Documentos',        path: '/documentos', icon: 'file',      soon: true },
       { label: 'Agenda',            path: '/agenda',     icon: 'calendar',  soon: true },
+      { label: 'Recetas',           path: '/recetas',    icon: 'clipboard', roles: ['Médico', 'Farmacia', 'Administrativo', 'Director'] },
     ],
   },
   {

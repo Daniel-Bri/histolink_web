@@ -18,6 +18,7 @@ import TriajeForm from './pages/Urgencias/TriajeForm'
 import SolicitudEstudios from './pages/SolicitudEstudios'
 import ColaLaboratorio from './pages/ColaLaboratorio'
 import ReportesProduccion from './pages/ReportesProduccion'
+import Recetas from './pages/Recetas'
 import './pages/Estudios.css'
 
 export default function App() {
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/estudios/solicitud" element={<SolicitudEstudios />} />
           <Route path="/estudios/cola-laboratorio" element={<ColaLaboratorio />} />
           <Route path="/reportes/produccion" element={<ReportesProduccion />} />
+          <Route path="/recetas" element={<Recetas />} />
         </Route>
         
         {/* Redirige la raíz al dashboard */}
