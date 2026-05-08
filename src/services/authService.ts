@@ -28,6 +28,8 @@ export interface AuthUser {
   email: string
   groups: string[]
   tenant: AuthTenant | null
+  is_staff?: boolean
+  is_superuser?: boolean
 }
 
 export interface LoginResponse {

@@ -1,7 +1,22 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getStoredUser } from '../utils/auth'
+
+// ── Pacientes recientes (guardados en sessionStorage) ─────────────────────────
+interface PacienteReciente { id: number; nombre: string; ci: string }
+
+function getPacientesRecientes(): PacienteReciente[] {
+  try { return JSON.parse(sessionStorage.getItem('pacientes_recientes') ?? '[]') as PacienteReciente[] }
+  catch { return [] }
+}
+
+export function registrarPacienteReciente(p: PacienteReciente) {
+  const lista = getPacientesRecientes().filter(x => x.id !== p.id)
+  lista.unshift(p)
+  sessionStorage.setItem('pacientes_recientes', JSON.stringify(lista.slice(0, 5)))
+  window.dispatchEvent(new Event('pacientes-recientes-updated'))
+}
 
 // ── Iconos SVG monocromáticos ─────────────────────────────────────────────
 function Icon({ name, size = 15 }: { name: string; size?: number }) {
@@ -127,10 +142,12 @@ interface NavItem {
   icon: string
   soon?: boolean
   roles?: string[]
+  staffOnly?: boolean
 }
 interface NavSection {
   title: string
   items: NavItem[]
+  staffOnly?: boolean
 }
 
 const NAV: NavSection[] = [
@@ -166,7 +183,14 @@ const NAV: NavSection[] = [
     title: 'Seguridad y Admin',
     items: [
       { label: 'Auditoría',      icon: 'shield',   soon: true, roles: ['Auditor', 'Director'] },
-      { label: 'Administración', icon: 'settings', soon: true, roles: ['Administrativo', 'Director'] },
+      { label: 'Configuración',  path: '/configuracion', icon: 'settings', roles: ['Administrativo', 'Director'] },
+    ],
+  },
+  {
+    title: 'Superadmin',
+    staffOnly: true,
+    items: [
+      { label: 'Panel SaaS', path: '/admin/tenants', icon: 'cpu', staffOnly: true },
     ],
   },
 ]
@@ -191,8 +215,36 @@ export default function Layout() {
   const rol        = user?.groups?.[0] ?? 'Sin rol'
   const rolColor   = ROL_COLORS[rol] ?? { bg: 'rgba(148,163,184,0.18)', text: '#94A3B8' }
 
+  const isSuperadmin = user?.is_staff === true
+
   const [hovered, setHovered]     = useState<string | null>(null)
   const [collapsed, setCollapsed] = useState(false)
+  const [recientes, setRecientes] = useState<PacienteReciente[]>(getPacientesRecientes)
+
+  // Refrescar lista cuando se registra un paciente reciente desde cualquier pantalla
+  useEffect(() => {
+    const handler = () => setRecientes(getPacientesRecientes())
+    window.addEventListener('pacientes-recientes-updated', handler)
+    return () => window.removeEventListener('pacientes-recientes-updated', handler)
+  }, [])
+
+  // Atajos de teclado globales
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Ctrl+F → ir a búsqueda de pacientes
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        e.preventDefault()
+        navigate('/pacientes')
+      }
+      // Escape → volver al dashboard desde rutas de detalle
+      if (e.key === 'Escape' && location.pathname !== '/dashboard') {
+        const parts = location.pathname.split('/')
+        if (parts.length > 2) navigate(-1)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [navigate, location.pathname])
 
   const isActive = (path?: string) =>
     !!path && (location.pathname === path || location.pathname.startsWith(path + '/'))
@@ -309,12 +361,12 @@ export default function Layout() {
 
         {/* Navegación */}
         <nav style={{ flex: 1, padding: '6px 0 12px', overflowY: 'auto' }}>
-          {NAV.map(section => (
+          {NAV.filter(section => !section.staffOnly || isSuperadmin).map(section => (
             <div key={section.title} style={{ marginBottom: '2px' }}>
 
               {/* Encabezado de sección */}
               <p style={{
-                color: 'rgba(255,255,255,0.65)',
+                color: section.staffOnly ? 'rgba(251,191,36,0.75)' : 'rgba(255,255,255,0.65)',
                 fontSize: '10px', fontWeight: 700,
                 letterSpacing: '0.08em', textTransform: 'uppercase',
                 padding: '14px 18px 5px', margin: 0,
@@ -323,6 +375,7 @@ export default function Layout() {
               </p>
 
               {section.items.map(item => {
+                if (item.staffOnly && !isSuperadmin) return null
                 const hasAccess = !item.roles || item.roles.some(r => user?.groups?.includes(r))
                 const disabled  = item.soon || !hasAccess
                 const active    = isActive(item.path)
@@ -381,6 +434,48 @@ export default function Layout() {
             </div>
           ))}
         </nav>
+
+        {/* Pacientes recientes */}
+        {recientes.length > 0 && (
+          <div style={{ borderTop: `1px solid ${DIVIDER}`, padding: '10px 0 4px', flexShrink: 0 }}>
+            <p style={{
+              color: 'rgba(255,255,255,0.5)',
+              fontSize: '10px', fontWeight: 700,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              padding: '4px 18px 6px', margin: 0,
+            }}>
+              Recientes
+            </p>
+            {recientes.map(p => (
+              <button
+                key={p.id}
+                onClick={() => navigate(`/pacientes/${p.id}/expediente`)}
+                onMouseEnter={() => setHovered(`__rec_${p.id}`)}
+                onMouseLeave={() => setHovered(null)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  width: '100%', padding: '6px 18px',
+                  background: hovered === `__rec_${p.id}` ? HOVER_BG : 'transparent',
+                  border: 'none', borderLeft: '3px solid transparent',
+                  color: 'rgba(255,255,255,0.8)', fontSize: '12px',
+                  cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s',
+                }}
+              >
+                <span style={{
+                  width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0,
+                  background: 'rgba(0,168,150,0.3)', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: '#6EE7DF',
+                }}>
+                  {p.nombre.charAt(0).toUpperCase()}
+                </span>
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {p.nombre}
+                </span>
+                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>{p.ci}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Acciones inferiores */}
         <div style={{

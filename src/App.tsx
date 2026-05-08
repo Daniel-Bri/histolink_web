@@ -19,6 +19,9 @@ import SolicitudEstudios from './pages/SolicitudEstudios'
 import ColaLaboratorio from './pages/ColaLaboratorio'
 import ReportesProduccion from './pages/ReportesProduccion'
 import Recetas from './pages/Recetas'
+import Configuracion from './pages/Configuracion'
+import AdminTenants from './pages/AdminTenants'
+import TenantDetalle from './pages/AdminTenants/TenantDetalle'
 import './pages/Estudios.css'
 
 export default function App() {
@@ -49,6 +52,9 @@ export default function App() {
           <Route path="/estudios/cola-laboratorio" element={<ColaLaboratorio />} />
           <Route path="/reportes/produccion" element={<ReportesProduccion />} />
           <Route path="/recetas" element={<Recetas />} />
+          <Route path="/configuracion"          element={<Configuracion />} />
+          <Route path="/admin/tenants"          element={<AdminTenants />} />
+          <Route path="/admin/tenants/:id"      element={<TenantDetalle />} />
         </Route>
         
         {/* Redirige la raíz al dashboard */}
