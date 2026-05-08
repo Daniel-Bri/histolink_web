@@ -179,7 +179,65 @@ export default function SolicitudEstudios() {
       {ok && <div className="estudios-alert estudios-alert-ok" style={{ marginBottom: 12 }}>{ok}</div>}
 
       <form onSubmit={onSubmit}>
-        <div className="estudios-layout-grid">
+
+        {/* ── Fila superior: Tipo + Prioridad horizontales ── */}
+        <div className="estudios-shell-card estudios-top-row">
+          <div className="estudios-top-col">
+            <h2 className="estudios-section-title" style={{ marginBottom: 10 }}>Tipo de estudio</h2>
+            <div className="tipo-grid">
+              {TIPOS.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  className={`tipo-chip ${tipo === t.value ? 'tipo-chip-active' : ''}`}
+                  onClick={() => setTipo(t.value)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="estudios-top-divider" />
+
+          <div className="estudios-top-col estudios-top-col-prioridad">
+            <h2 className="estudios-section-title" style={{ marginBottom: 10 }}>Prioridad</h2>
+            <div className="prioridad-grid" style={{ maxWidth: 260 }}>
+              <button
+                type="button"
+                className={`prioridad-btn ${!urgente ? 'prioridad-btn-active prioridad-btn-normal' : ''}`}
+                onClick={() => setUrgente(false)}
+              >
+                Normal
+              </button>
+              <button
+                type="button"
+                className={`prioridad-btn ${urgente ? 'prioridad-btn-active prioridad-btn-urgente' : ''}`}
+                onClick={() => setUrgente(true)}
+              >
+                Urgente
+              </button>
+            </div>
+            <p style={{ margin: '8px 0 0', fontSize: 12, color: '#60708d' }}>
+              Normal: flujo estándar · Urgente: prioridad en cola.
+            </p>
+            {urgente && (
+              <div style={{ marginTop: 10 }}>
+                <label className="estudios-label">Motivo de urgencia</label>
+                <textarea
+                  value={motivoUrgencia}
+                  onChange={(e) => setMotivoUrgencia(e.target.value)}
+                  rows={2}
+                  placeholder="Explica por qué requiere prioridad..."
+                  style={{ minHeight: 60 }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Fila inferior: Consulta base + Información clínica ── */}
+        <div className="estudios-layout-grid" style={{ marginTop: 14 }}>
           <section className="estudios-shell-card">
             <h2 className="estudios-section-title">Consulta base</h2>
             <div>
@@ -231,22 +289,6 @@ export default function SolicitudEstudios() {
           </section>
 
           <section className="estudios-shell-card">
-            <h2 className="estudios-section-title">Tipo de estudio</h2>
-            <div className="tipo-grid">
-              {TIPOS.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  className={`tipo-chip ${tipo === t.value ? 'tipo-chip-active' : ''}`}
-                  onClick={() => setTipo(t.value)}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className="estudios-shell-card">
             <h2 className="estudios-section-title">Información clínica</h2>
             <div>
               <label className="estudios-label">Descripción del estudio</label>
@@ -261,45 +303,9 @@ export default function SolicitudEstudios() {
               <textarea
                 value={indicacion}
                 onChange={(e) => setIndicacion(e.target.value)}
-                rows={5}
+                rows={8}
                 placeholder="Describe la razón médica del estudio..."
               />
-            </div>
-          </section>
-
-          <section className="estudios-shell-card">
-            <h2 className="estudios-section-title">Prioridad del estudio</h2>
-            <div className="prioridad-card">
-              <div className="prioridad-grid">
-                <button
-                  type="button"
-                  className={`prioridad-btn ${!urgente ? 'prioridad-btn-active prioridad-btn-normal' : ''}`}
-                  onClick={() => setUrgente(false)}
-                >
-                  Normal
-                </button>
-                <button
-                  type="button"
-                  className={`prioridad-btn ${urgente ? 'prioridad-btn-active prioridad-btn-urgente' : ''}`}
-                  onClick={() => setUrgente(true)}
-                >
-                  Urgente
-                </button>
-              </div>
-              <p style={{ margin: '8px 0 0', fontSize: 12, color: '#60708d' }}>
-                Normal: flujo estándar. Urgente: prioridad en cola de laboratorio.
-              </p>
-              {urgente && (
-                <div style={{ marginTop: 12 }}>
-                  <label className="estudios-label">Motivo de urgencia</label>
-                  <textarea
-                    value={motivoUrgencia}
-                    onChange={(e) => setMotivoUrgencia(e.target.value)}
-                    rows={5}
-                    placeholder="Explica por qué este estudio requiere prioridad..."
-                  />
-                </div>
-              )}
             </div>
           </section>
         </div>
