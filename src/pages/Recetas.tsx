@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import api from '../api/axios'
+import { api } from '../api/axiosConfig'
 
 interface DetalleReceta {
   id?: number
@@ -89,8 +89,8 @@ export default function Recetas() {
     setError('')
     try {
       const [recetasRes, consultasRes] = await Promise.all([
-        api.get('/api/clinica/recetas/'),
-        api.get('/api/consultas/consultas/?estado=COMPLETADA'),
+        api.get('clinica/recetas/'),
+        api.get('consultas/consultas/?estado=COMPLETADA'),
       ])
       setRecetas(recetasRes.data.results ?? recetasRes.data)
       setConsultas(consultasRes.data.results ?? consultasRes.data)
@@ -124,7 +124,7 @@ export default function Recetas() {
     setGuardandoReceta(true)
     setError('')
     try {
-      await api.post('/api/clinica/recetas/', {
+      await api.post('clinica/recetas/', {
         consulta: parseInt(consultaId),
         observaciones,
         detalles: detalles.map((d, i) => ({ ...d, orden: i + 1 })),
@@ -145,7 +145,7 @@ export default function Recetas() {
   const handleDispensar = async (id: number) => {
     setAccionLoading(true)
     try {
-      await api.patch(`/api/clinica/recetas/${id}/dispensar/`)
+      await api.patch(`clinica/recetas/${id}/dispensar/`)
       await cargarDatos()
       setRecetaSeleccionada(null)
       setExito('Receta dispensada exitosamente')
@@ -161,7 +161,7 @@ export default function Recetas() {
     if (!window.confirm('¿Estás seguro de anular esta receta?')) return
     setAccionLoading(true)
     try {
-      await api.patch(`/api/clinica/recetas/${id}/anular/`)
+      await api.patch(`clinica/recetas/${id}/anular/`)
       await cargarDatos()
       setRecetaSeleccionada(null)
       setExito('Receta anulada')
