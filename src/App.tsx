@@ -22,7 +22,7 @@ import Recetas from './pages/Recetas'
 import Configuracion from './pages/Configuracion'
 import AdminTenants from './pages/AdminTenants'
 import TenantDetalle from './pages/AdminTenants/TenantDetalle'
-import './pages/Estudios.css'
+import './pages/Estudios.css' 
 
 export default function App() {
   return (
