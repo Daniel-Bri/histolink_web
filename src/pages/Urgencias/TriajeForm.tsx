@@ -249,7 +249,7 @@ export default function TriajeForm() {
   // Save step
   const [saving, setSaving]   = useState(false)
   const [saveError, setSaveError] = useState('')
-  const guardarRef = useRef<() => Promise<void>>()
+  const guardarRef = useRef<(() => Promise<void>) | undefined>(undefined)
 
   // Ctrl+S → guardar triaje
   useEffect(() => {

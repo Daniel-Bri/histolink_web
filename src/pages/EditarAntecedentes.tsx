@@ -42,7 +42,7 @@ export default function EditarAntecedentes() {
   const [error, setError]       = useState('')
   const [exito, setExito]       = useState('')
   const [dirty, setDirty]       = useState(false)
-  const guardarRef = useRef<() => Promise<void>>()
+  const guardarRef = useRef<(() => Promise<void>) | undefined>(undefined)
 
   // Ctrl+S → guardar
   useEffect(() => {

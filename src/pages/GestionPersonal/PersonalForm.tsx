@@ -95,7 +95,7 @@ export default function PersonalForm() {
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [dirty, setDirty] = useState(false)
-  const submitRef = useRef<(e: FormEvent) => Promise<void>>()
+  const submitRef = useRef<((e: FormEvent) => Promise<void>) | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
