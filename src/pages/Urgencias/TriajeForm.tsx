@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { fichaService } from '../../services/fichaService'
 import { triajeService } from '../../services/triajeService'
@@ -249,6 +249,31 @@ export default function TriajeForm() {
   // Save step
   const [saving, setSaving]   = useState(false)
   const [saveError, setSaveError] = useState('')
+  const guardarRef = useRef<() => Promise<void>>()
+
+  // Ctrl+S → guardar triaje
+  useEffect(() => {
+    guardarRef.current = handleGuardar
+  })
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        if (aiResult && !saving) void guardarRef.current?.()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [aiResult, saving])
+
+  // Advertir si hay datos sin guardar al salir
+  useEffect(() => {
+    const hasDatos = motivo.trim() || spo2 || fc || pas || temp
+    if (!hasDatos) return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [motivo, spo2, fc, pas, temp])
 
   useEffect(() => {
     if (!fichaId) return

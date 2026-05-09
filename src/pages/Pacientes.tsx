@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/axiosConfig'
 import { hasRole } from '../utils/auth'
 import type { Paciente } from '../types/paciente.types'
+import { registrarPacienteReciente } from '../components/Layout'
 
 const PUEDE_REGISTRAR_PACIENTE = () => hasRole('Médico', 'Enfermera', 'Administrativo')
 
@@ -25,6 +26,7 @@ export default function Pacientes() {
   const [totalPaginas, setTotalPaginas] = useState(1)
   const [total, setTotal]               = useState(0)
   const POR_PAGINA = 10
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const buscarPacientes = async (pag = 1, search = busqueda) => {
     setLoading(true)
@@ -45,6 +47,13 @@ export default function Pacientes() {
   }
 
   useEffect(() => { buscarPacientes(1, '') }, [])
+
+  // Búsqueda automática con debounce 300ms al escribir
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => { void buscarPacientes(1, busqueda) }, 300)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [busqueda])
 
   return (
     <div style={{ padding: '32px' }}>
@@ -74,21 +83,20 @@ export default function Pacientes() {
         display: 'flex', gap: '10px', flexWrap: 'wrap',
       }}>
         <input
-          placeholder="Buscar por CI o apellido..."
+          placeholder="Buscar por CI o apellido... (búsqueda automática)"
           value={busqueda}
           onChange={e => setBusqueda(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && buscarPacientes(1, busqueda)}
           style={{ flex: 1, minWidth: '200px' }}
+          autoFocus
         />
-        <button onClick={() => buscarPacientes(1, busqueda)} style={{ padding: '8px 20px' }}>
-          Buscar
-        </button>
-        <button
-          onClick={() => { setBusqueda(''); buscarPacientes(1, '') }}
-          style={{ padding: '8px 20px', background: 'transparent', color: '#0003B8', border: '1.5px solid #B3D4FF' }}
-        >
-          Limpiar
-        </button>
+        {busqueda && (
+          <button
+            onClick={() => setBusqueda('')}
+            style={{ padding: '8px 20px', background: 'transparent', color: '#0003B8', border: '1.5px solid #B3D4FF' }}
+          >
+            Limpiar
+          </button>
+        )}
       </div>
 
       {error && <p style={{ color: '#E53935', marginBottom: '16px' }}>{error}</p>}
@@ -142,7 +150,10 @@ export default function Pacientes() {
                   <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                       <button
-                        onClick={() => navigate(`/pacientes/${p.id}/expediente`)}
+                        onClick={() => {
+                          registrarPacienteReciente({ id: p.id, nombre: `${p.nombre} ${p.apellido}`, ci: p.ci })
+                          navigate(`/pacientes/${p.id}/expediente`)
+                        }}
                         style={{
                           background: '#0003B8', color: 'white',
                           border: 'none', borderRadius: '6px',

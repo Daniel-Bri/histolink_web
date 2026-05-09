@@ -18,12 +18,6 @@ import {
 
 type Tab = 'establecimiento' | 'modulos' | 'backup' | 'gestiones'
 
-const IDIOMAS = [
-  { value: 'es', label: 'Español' },
-  { value: 'en', label: 'English' },
-  { value: 'pt', label: 'Português' },
-]
-
 const MONEDAS = [
   { value: 'BOB', label: 'Boliviano (BOB)' },
   { value: 'USD', label: 'Dólar (USD)' },
@@ -115,7 +109,6 @@ export default function Configuracion() {
   // Campos del establecimiento
   const [emailContacto, setEmailContacto] = useState('')
   const [sitioWeb, setSitioWeb]           = useState('')
-  const [idioma, setIdioma]               = useState('es')
   const [moneda, setMoneda]               = useState('BOB')
   const [zonaHoraria, setZonaHoraria]     = useState('America/La_Paz')
   const [dirty, setDirty]                 = useState(false)
@@ -145,7 +138,6 @@ export default function Configuracion() {
         setGestiones(gest)
         setEmailContacto(cfg.email_contacto)
         setSitioWeb(cfg.sitio_web)
-        setIdioma(cfg.idioma)
         setMoneda(cfg.moneda)
         setZonaHoraria(cfg.zona_horaria)
         setModulosHabilitados(cfg.modulos_habilitados)
@@ -178,7 +170,7 @@ export default function Configuracion() {
   async function handleGuardar() {
     setSaving(true)
     try {
-      const updated = await patchConfiguracion({ email_contacto: emailContacto, sitio_web: sitioWeb, idioma, moneda, zona_horaria: zonaHoraria })
+      const updated = await patchConfiguracion({ email_contacto: emailContacto, sitio_web: sitioWeb, moneda, zona_horaria: zonaHoraria })
       setConfig(updated)
       setDirty(false)
       flash('ok', 'Configuración guardada correctamente.')
@@ -368,16 +360,7 @@ export default function Configuracion() {
               placeholder="https://www.ejemplo.com"
             />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-            <div style={fieldRow}>
-              <label style={label}>Idioma</label>
-              <select
-                style={input} value={idioma}
-                onChange={e => { setIdioma(e.target.value); setDirty(true) }}
-              >
-                {IDIOMAS.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
-              </select>
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div style={fieldRow}>
               <label style={label}>Moneda</label>
               <select
@@ -404,7 +387,6 @@ export default function Configuracion() {
               <button style={btnSecondary} onClick={() => {
                 setEmailContacto(config?.email_contacto ?? '')
                 setSitioWeb(config?.sitio_web ?? '')
-                setIdioma(config?.idioma ?? 'es')
                 setMoneda(config?.moneda ?? 'BOB')
                 setZonaHoraria(config?.zona_horaria ?? 'America/La_Paz')
                 setDirty(false)

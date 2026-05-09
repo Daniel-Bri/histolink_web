@@ -23,6 +23,7 @@ export default function PersonalList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [rolFiltro, setRolFiltro] = useState<FiltroRol>('todos')
+  const [busqueda, setBusqueda] = useState('')
   const [deactivateTarget, setDeactivateTarget] = useState<PersonalSalud | null>(null)
   const [deactivateLoading, setDeactivateLoading] = useState(false)
   const [reactivateTarget, setReactivateTarget] = useState<PersonalSalud | null>(null)
@@ -46,9 +47,17 @@ export default function PersonalList() {
   }, [load])
 
   const filtrados = useMemo(() => {
-    if (rolFiltro === 'todos') return items
-    return items.filter((p) => p.rol === rolFiltro)
-  }, [items, rolFiltro])
+    let lista = rolFiltro === 'todos' ? items : items.filter((p) => p.rol === rolFiltro)
+    if (busqueda.trim()) {
+      const q = busqueda.toLowerCase()
+      lista = lista.filter((p) =>
+        nombreCompleto(p).toLowerCase().includes(q) ||
+        p.user.username.toLowerCase().includes(q) ||
+        p.item_min_salud.toLowerCase().includes(q),
+      )
+    }
+    return lista
+  }, [items, rolFiltro, busqueda])
 
   const confirmDeactivate = async () => {
     if (!deactivateTarget) return
@@ -110,14 +119,24 @@ export default function PersonalList() {
         </button>
       </div>
 
-      {/* Filtro de rol */}
+      {/* Filtros */}
       <div style={{
         background: 'white', borderRadius: '12px', padding: '14px 20px',
         marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,3,184,0.06)',
         display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap',
       }}>
+        <input
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar por nombre, usuario o ítem..."
+          style={{
+            flex: 1, minWidth: '180px',
+            padding: '8px 12px', fontSize: '13px', borderRadius: '8px',
+            border: '1.5px solid #B3D4FF', color: '#333', background: 'white', outline: 'none',
+          }}
+        />
         <label htmlFor="filtro-rol" style={{ fontSize: '13px', color: '#0003B8', fontWeight: 600 }}>
-          Filtrar por rol:
+          Rol:
         </label>
         <select
           id="filtro-rol"
@@ -129,15 +148,15 @@ export default function PersonalList() {
             cursor: 'pointer',
           }}
         >
-          <option value="todos">Todos los roles</option>
+          <option value="todos">Todos</option>
           <option value="medico">Médico</option>
           <option value="enfermera">Enfermera</option>
           <option value="admin">Admin</option>
         </select>
-        {rolFiltro !== 'todos' && (
+        {(rolFiltro !== 'todos' || busqueda) && (
           <button
             type="button"
-            onClick={() => setRolFiltro('todos')}
+            onClick={() => { setRolFiltro('todos'); setBusqueda('') }}
             style={{
               background: 'transparent', color: '#0003B8',
               border: '1.5px solid #B3D4FF', borderRadius: '8px',

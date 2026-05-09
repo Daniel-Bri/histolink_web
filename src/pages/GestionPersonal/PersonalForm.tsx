@@ -1,5 +1,5 @@
 import type { CSSProperties, FormEvent } from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AlertError from '../../components/AlertError'
 import { fetchEspecialidades, type Especialidad } from '../../services/especialidadService'
@@ -94,6 +94,8 @@ export default function PersonalForm() {
   const [editUserLabel, setEditUserLabel] = useState('')
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [dirty, setDirty] = useState(false)
+  const submitRef = useRef<(e: FormEvent) => Promise<void>>()
 
   useEffect(() => {
     let cancelled = false
@@ -133,6 +135,29 @@ export default function PersonalForm() {
     void init()
     return () => { cancelled = true }
   }, [id, isEdit])
+
+  // Ctrl+S → submit
+  useEffect(() => {
+    submitRef.current = handleSubmit
+  })
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        if (dirty && !saving) void submitRef.current?.(new Event('submit') as unknown as FormEvent)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [dirty, saving])
+
+  // Advertir si hay cambios sin guardar al salir
+  useEffect(() => {
+    if (!dirty) return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [dirty])
 
   const recargarEspecialidades = async () => {
     setEspError(false)
@@ -238,7 +263,7 @@ export default function PersonalForm() {
         background: 'white', borderRadius: '12px', padding: '28px 32px',
         boxShadow: '0 2px 8px rgba(0,3,184,0.06)', maxWidth: '620px',
       }}>
-        <form onSubmit={(e) => void handleSubmit(e)} noValidate>
+        <form onSubmit={(e) => void handleSubmit(e)} onInput={() => setDirty(true)} noValidate>
 
           {/* ── Sección datos de acceso (solo creación) ── */}
           {!isEdit ? (
@@ -383,6 +408,13 @@ export default function PersonalForm() {
               style={inputStyle}
             />
           </div>
+
+          {/* Aviso cambios sin guardar */}
+          {dirty && (
+            <p style={{ fontSize: '12px', color: '#92400E', background: '#FFFBEB', padding: '8px 14px', borderRadius: '8px', border: '1px solid #FDE68A', marginBottom: '12px' }}>
+              Tienes cambios sin guardar. Usa <strong>Ctrl+S</strong> para guardar rápidamente.
+            </p>
+          )}
 
           {/* Botones */}
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/axiosConfig'
 
@@ -41,6 +41,31 @@ export default function EditarAntecedentes() {
   const [guardando, setGuardando] = useState(false)
   const [error, setError]       = useState('')
   const [exito, setExito]       = useState('')
+  const [dirty, setDirty]       = useState(false)
+  const guardarRef = useRef<() => Promise<void>>()
+
+  // Ctrl+S → guardar
+  useEffect(() => {
+    guardarRef.current = guardar
+  })
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        if (dirty && !guardando) void guardarRef.current?.()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [dirty, guardando])
+
+  // Advertir si hay cambios sin guardar al salir
+  useEffect(() => {
+    if (!dirty) return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [dirty])
 
   useEffect(() => {
     if (!id) { setError('ID inválido.'); setLoading(false); return }
@@ -65,6 +90,7 @@ export default function EditarAntecedentes() {
 
   const set = (key: keyof AntecedenteForm, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }))
+    setDirty(true)
     setExito('')
     setError('')
   }
@@ -74,6 +100,7 @@ export default function EditarAntecedentes() {
     setGuardando(true); setError(''); setExito('')
     try {
       await api.patch(`antecedentes/${id}/antecedentes/`, form)
+      setDirty(false)
       setExito('Antecedentes actualizados correctamente.')
       setTimeout(() => navigate(`/pacientes/${id}/expediente`), 1200)
     } catch (e: any) {
@@ -188,6 +215,13 @@ export default function EditarAntecedentes() {
               ))}
             </div>
           </div>
+
+          {/* Aviso cambios sin guardar */}
+          {dirty && (
+            <p style={{ fontSize: '12px', color: '#92400E', background: '#FFFBEB', padding: '8px 14px', borderRadius: '8px', border: '1px solid #FDE68A', margin: 0 }}>
+              Tienes cambios sin guardar. Usa <strong>Ctrl+S</strong> para guardar rápidamente.
+            </p>
+          )}
 
           {/* Acciones */}
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>

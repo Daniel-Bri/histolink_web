@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 
@@ -70,6 +70,14 @@ export default function Login() {
           </div>
           {error && <p style={{ color: '#E53935', fontSize: '13px' }}>{error}</p>}
           <button onClick={handleLogin} style={{ marginTop: '4px' }}>Entrar</button>
+          <div style={{ textAlign: 'center', marginTop: '4px' }}>
+            <Link
+              to="/olvidar-password"
+              style={{ fontSize: '13px', color: '#0023B8', textDecoration: 'none', opacity: 0.8 }}
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
         </div>
       </div>
     </div>

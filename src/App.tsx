@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import Login from './pages/Login'
+import OlvidarPassword from './pages/OlvidarPassword'
 import Dashboard from './pages/Dashboard'
 import CambiarPassword from './pages/CambiarPassword'
 import EnConstruccion from './pages/EnConstruccion'
@@ -30,6 +31,7 @@ export default function App() {
       <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/olvidar-password" element={<OlvidarPassword />} />
 
         {/* Rutas protegidas con sidebar (Layout) */}
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
