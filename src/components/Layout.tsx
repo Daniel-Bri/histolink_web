@@ -164,7 +164,7 @@ const NAV: NavSection[] = [
       { label: 'Urgencias',          path: '/urgencias',                   icon: 'activity',  roles: ['Médico', 'Enfermera', 'Administrativo', 'Director'] },
       { label: 'Solicitar estudio',  path: '/estudios/solicitud',          icon: 'clipboard', roles: ['Médico', 'Administrativo', 'Director'] },
       { label: 'Cola laboratorio',   path: '/estudios/cola-laboratorio',   icon: 'flask',     roles: ['Laboratorio', 'Administrativo', 'Director'] },
-      { label: 'Reportes producción', path: '/reportes/produccion',        icon: 'activity',  roles: ['ADMIN', 'Admin', 'Administrativo', 'Auditor', 'Médico'] },
+      { label: 'Reportes producción', path: '/reportes/produccion',        icon: 'activity',  roles: ['ADMIN', 'Admin', 'Administrativo', 'Auditor', 'Médico', 'Director'] },
       { label: 'Recetas',           path: '/recetas',    icon: 'clipboard', roles: ['Médico', 'Farmacia', 'Administrativo', 'Director'] },
     ],
   },
