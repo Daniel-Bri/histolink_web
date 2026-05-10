@@ -159,6 +159,23 @@ export default function PersonalForm() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [dirty])
 
+  // Fortaleza de contraseña (solo en creación)
+  const passwordStrength = (() => {
+    if (!password) return null
+    const checks = [
+      password.length >= 8,
+      /[A-Z]/.test(password),
+      /[a-z]/.test(password),
+      /\d/.test(password),
+      /[^A-Za-z0-9]/.test(password),
+    ]
+    const score = checks.filter(Boolean).length
+    if (score <= 2) return { label: 'Muy débil', color: '#DC2626', pct: 20 }
+    if (score === 3) return { label: 'Débil', color: '#EA580C', pct: 40 }
+    if (score === 4) return { label: 'Aceptable', color: '#CA8A04', pct: 70 }
+    return { label: 'Fuerte', color: '#16A34A', pct: 100 }
+  })()
+
   const recargarEspecialidades = async () => {
     setEspError(false)
     try {
@@ -176,7 +193,15 @@ export default function PersonalForm() {
       if (!username.trim()) fe.username = 'El nombre de usuario es obligatorio.'
       if (!firstName.trim()) fe.first_name = 'El nombre es obligatorio.'
       if (!lastName.trim()) fe.last_name = 'El apellido es obligatorio.'
-      if (password.length < 6) fe.password = 'La contraseña debe tener al menos 6 caracteres.'
+      if (password.length < 8) {
+        fe.password = 'La contraseña debe tener al menos 8 caracteres.'
+      } else if (!/[A-Z]/.test(password)) {
+        fe.password = 'Debe incluir al menos una letra mayúscula.'
+      } else if (!/[a-z]/.test(password)) {
+        fe.password = 'Debe incluir al menos una letra minúscula.'
+      } else if (!/\d/.test(password)) {
+        fe.password = 'Debe incluir al menos un número.'
+      }
       if (password !== confirmPassword) fe.confirm_password = 'Las contraseñas no coinciden.'
     }
 
@@ -309,6 +334,17 @@ export default function PersonalForm() {
                 <div style={fieldWrap}>
                   <label htmlFor="password" style={labelStyle}>Contraseña</label>
                   <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} autoComplete="new-password" />
+                  {passwordStrength && (
+                    <div style={{ marginTop: '6px' }}>
+                      <div style={{ height: '4px', borderRadius: '4px', background: '#E2E8F0', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${passwordStrength.pct}%`, background: passwordStrength.color, transition: 'width 0.3s, background 0.3s' }} />
+                      </div>
+                      <p style={{ fontSize: '11px', color: passwordStrength.color, margin: '3px 0 0', fontWeight: 600 }}>
+                        {passwordStrength.label}
+                        {passwordStrength.pct < 70 && ' — incluye mayúsculas, números y símbolos'}
+                      </p>
+                    </div>
+                  )}
                   <FieldError msg={fieldErrors.password} />
                 </div>
                 <div style={fieldWrap}>
