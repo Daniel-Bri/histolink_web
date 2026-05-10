@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api } from '../../api/axiosConfig'
+import { publicClient } from '../../api/axiosConfig'
 
 type Step = 'email' | 'code' | 'password' | 'success'
 
@@ -79,14 +79,20 @@ export default function OlvidarPassword() {
     if (!email.trim()) { setError('Ingresa tu correo electrónico.'); return }
     setLoading(true)
     try {
-      await api.post('auth/forgot-password/', { email: email.trim().toLowerCase() })
+      await publicClient.post('auth/forgot-password/', { email: email.trim().toLowerCase() })
       setStep('code')
     } catch (err: unknown) {
-      const status = (err as { response?: { status?: number } })?.response?.status
+      const axiosErr = err as { response?: { status?: number; data?: { error?: string } }; code?: string }
+      const status   = axiosErr?.response?.status
       if (status === 500) {
-        setError('El servidor no pudo enviar el correo. Verifica la configuración SMTP en el servidor.')
+        const detail = axiosErr?.response?.data?.error
+        setError(detail ?? 'El servidor no pudo enviar el correo. Verifica la configuración SMTP.')
+      } else if (status != null) {
+        setError(`Error inesperado del servidor (${status}). Intenta de nuevo.`)
+      } else if (axiosErr?.code === 'ECONNABORTED') {
+        setError('La solicitud tardó demasiado. Verifica tu conexión o inténtalo más tarde.')
       } else {
-        setError('No se pudo conectar. Verifica tu conexión a internet.')
+        setError('No se pudo conectar con el servidor. Verifica tu conexión a internet.')
       }
     } finally {
       setLoading(false)
@@ -110,7 +116,7 @@ export default function OlvidarPassword() {
     if (pass1 !== pass2)  { setError('Las contraseñas no coinciden.'); return }
     setLoading(true)
     try {
-      await api.post('auth/reset-password/', {
+      await publicClient.post('auth/reset-password/', {
         email:                email.trim().toLowerCase(),
         code,
         new_password:         pass1,
