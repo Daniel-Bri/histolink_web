@@ -136,22 +136,8 @@ export default function Bitacora() {
     setFilters(prev => ({ ...prev, page: newPage }));
   };
 
-  const handleExportCSV = async () => {
-    try {
-      const blob = await auditoriaService.exportBitacora(filters);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const now = dayjs().tz(BOLIVIA_TZ).format('YYYYMMDD_HHmmss');
-      a.href = url;
-      a.download = `bitacora_${now}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (err) {
-      console.error(err);
-      alert('Error al exportar el archivo CSV.');
-    }
+  const handleExportCSV = () => {
+    auditoriaService.exportCSV(entries);
   };
 
   const formatBoliviaDate = (timestamp: string) => {

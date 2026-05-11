@@ -8,7 +8,7 @@ export interface BitacoraEntry {
   usuario_username: string;
   accion: AuditoriaAccion;
   modulo: AuditoriaModulo;
-  ip_address: string;
+  ip_address: string | null;
   detalles: string;
 }
 
