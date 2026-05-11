@@ -354,54 +354,44 @@ export default function Configuracion() {
       </div>
 
       {/* ── Sección 3: Restaurar ── */}
-      {isSuperadmin && (
-        <div style={{ ...card, borderColor: '#FECACA', borderTop: '4px solid #DC2626' }}>
-          <h2 style={{ ...sectionTitle, color: '#DC2626' }}>Restaurar desde Backup</h2>
-          <p style={sectionDesc}>
-            Sube un archivo JSON generado previamente con "Backup completo".{' '}
-            <strong style={{ color: '#DC2626' }}>Esta operación sobreescribirá los datos existentes y no se puede deshacer.</strong>
-          </p>
+      <div style={{ ...card, borderColor: '#FECACA', borderTop: '4px solid #DC2626' }}>
+        <h2 style={{ ...sectionTitle, color: '#DC2626' }}>Restaurar desde Backup</h2>
+        <p style={sectionDesc}>
+          Sube un archivo JSON generado previamente con "Descargar backup del establecimiento".{' '}
+          <strong style={{ color: '#DC2626' }}>Esta operación sobreescribirá los datos existentes y no se puede deshacer.</strong>
+        </p>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-            <div style={{
-              border: '1.5px dashed #FECACA', borderRadius: '8px',
-              padding: '10px 16px', background: '#FFF5F5',
-            }}>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json"
-                onChange={e => setRestoreFile(e.target.files?.[0] ?? null)}
-                style={{ fontSize: '13px', cursor: 'pointer' }}
-              />
-            </div>
-
-            {restoreFile && (
-              <button
-                style={btnDanger}
-                onClick={() => void handleRestore()}
-                disabled={restoreLoading}
-              >
-                {restoreLoading ? 'Restaurando…' : '↩ Restaurar ahora'}
-              </button>
-            )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <div style={{
+            border: '1.5px dashed #FECACA', borderRadius: '8px',
+            padding: '10px 16px', background: '#FFF5F5',
+          }}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={e => setRestoreFile(e.target.files?.[0] ?? null)}
+              style={{ fontSize: '13px', cursor: 'pointer' }}
+            />
           </div>
 
           {restoreFile && (
-            <p style={{ fontSize: '12px', color: '#DC2626', margin: '10px 0 0', fontWeight: 600 }}>
-              Archivo seleccionado: {restoreFile.name} ({(restoreFile.size / 1024).toFixed(1)} KB)
-            </p>
+            <button
+              style={btnDanger}
+              onClick={() => void handleRestore()}
+              disabled={restoreLoading}
+            >
+              {restoreLoading ? 'Restaurando…' : '↩ Restaurar ahora'}
+            </button>
           )}
         </div>
-      )}
 
-      {!isSuperadmin && (
-        <div style={{ ...card, background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-          <p style={{ fontSize: '13px', color: '#94A3B8', margin: 0, textAlign: 'center' }}>
-            La restauración de backups requiere permisos de superadministrador.
+        {restoreFile && (
+          <p style={{ fontSize: '12px', color: '#DC2626', margin: '10px 0 0', fontWeight: 600 }}>
+            Archivo seleccionado: {restoreFile.name} ({(restoreFile.size / 1024).toFixed(1)} KB)
           </p>
-        </div>
-      )}
+        )}
+      </div>
 
     </div>
   )
