@@ -99,6 +99,62 @@ const actionBtn = (bg: string): React.CSSProperties => ({
   boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
 });
 
+const btnToggle = (active: boolean, color: string, bg: string): React.CSSProperties => ({
+  background: active ? color : bg,
+  color: active ? 'white' : color,
+  padding: '10px 18px',
+  borderRadius: '8px',
+  border: `1.5px solid ${color}`,
+  fontWeight: 600,
+  fontSize: '13px',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  transition: 'all 0.2s',
+});
+
+const inputInline: React.CSSProperties = {
+  width: '100%',
+  padding: '8px 10px',
+  border: '1.5px solid #E2E8F0',
+  borderRadius: '6px',
+  fontSize: '13px',
+  color: '#334155',
+  background: '#FCFDFF',
+  outline: 'none',
+};
+
+interface DetalleReceta {
+  medicamento: string;
+  concentracion: string;
+  forma_farmaceutica: string;
+  via_administracion: string;
+  dosis: string;
+  frecuencia: string;
+  duracion: string;
+  cantidad_total: string;
+  instrucciones: string;
+  orden: number;
+}
+
+const TIPOS_ESTUDIO = [
+  { value: 'LAB', label: 'Laboratorio' },
+  { value: 'RX', label: 'Radiografía' },
+  { value: 'ECO', label: 'Ecografía' },
+  { value: 'TC', label: 'Tomografía Computarizada' },
+  { value: 'RMN', label: 'Resonancia Magnética' },
+  { value: 'ECG', label: 'Electrocardiograma' },
+  { value: 'END', label: 'Endoscopia' },
+  { value: 'OTRO', label: 'Otro' },
+];
+
+const recetaVacio = (): DetalleReceta => ({
+  medicamento: '', concentracion: '', forma_farmaceutica: '',
+  via_administracion: '', dosis: '', frecuencia: '', duracion: '',
+  cantidad_total: '', instrucciones: '', orden: 0,
+});
+
 export default function ConsultaSOAP() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -127,6 +183,20 @@ export default function ConsultaSOAP() {
   // Estados para Firma Digital
   const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
+
+  // Acciones clínicas inline
+  const [activePanel, setActivePanel] = useState<'receta' | 'estudio' | null>(null);
+  const [recetaDetalles, setRecetaDetalles] = useState<DetalleReceta[]>([recetaVacio()]);
+  const [recetaObs, setRecetaObs] = useState('');
+  const [guardandoReceta, setGuardandoReceta] = useState(false);
+  const [recetaMsg, setRecetaMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [tipoEstudio, setTipoEstudio] = useState('LAB');
+  const [descEstudio, setDescEstudio] = useState('');
+  const [indicEstudio, setIndicEstudio] = useState('');
+  const [urgenteEstudio, setUrgenteEstudio] = useState(false);
+  const [motivoUrgEstudio, setMotivoUrgEstudio] = useState('');
+  const [guardandoEstudio, setGuardandoEstudio] = useState(false);
+  const [estudioMsg, setEstudioMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const isEditable = consulta?.estado === 'BORRADOR';
   const isCompletada = consulta?.estado === 'COMPLETADA';
@@ -399,6 +469,61 @@ export default function ConsultaSOAP() {
     } catch (err) { alert('Error al actualizar estado.'); } finally { setSaving(false); }
   };
 
+  const handleGuardarReceta = async () => {
+    if (!consulta) return;
+    const detallesValidos = recetaDetalles.filter(d => d.medicamento.trim());
+    if (!detallesValidos.length) {
+      setRecetaMsg({ ok: false, text: 'Ingrese al menos un medicamento.' });
+      return;
+    }
+    try {
+      setGuardandoReceta(true);
+      setRecetaMsg(null);
+      await api.post('clinica/recetas/', {
+        consulta: consulta.id,
+        observaciones: recetaObs,
+        detalles: detallesValidos.map((d, i) => ({ ...d, orden: i + 1 })),
+      });
+      setRecetaMsg({ ok: true, text: 'Receta emitida correctamente.' });
+      setRecetaDetalles([recetaVacio()]);
+      setRecetaObs('');
+    } catch {
+      setRecetaMsg({ ok: false, text: 'Error al emitir la receta. Verifique que la consulta esté completada.' });
+    } finally {
+      setGuardandoReceta(false);
+    }
+  };
+
+  const handleGuardarEstudio = async () => {
+    if (!consulta) return;
+    if (!descEstudio.trim()) {
+      setEstudioMsg({ ok: false, text: 'Ingrese la descripción del estudio.' });
+      return;
+    }
+    try {
+      setGuardandoEstudio(true);
+      setEstudioMsg(null);
+      const payload: Record<string, unknown> = {
+        consulta_id: consulta.id,
+        tipo: tipoEstudio,
+        descripcion: descEstudio,
+        indicacion_clinica: indicEstudio,
+        urgente: urgenteEstudio,
+      };
+      if (urgenteEstudio && motivoUrgEstudio) payload.motivo_urgencia = motivoUrgEstudio;
+      await api.post('ordenes-estudio/', payload);
+      setEstudioMsg({ ok: true, text: 'Orden de estudio creada correctamente.' });
+      setDescEstudio('');
+      setIndicEstudio('');
+      setUrgenteEstudio(false);
+      setMotivoUrgEstudio('');
+    } catch {
+      setEstudioMsg({ ok: false, text: 'Error al crear la orden de estudio.' });
+    } finally {
+      setGuardandoEstudio(false);
+    }
+  };
+
   if (loading) return <LoadingSpinner />;
 
   if (!id) {
@@ -668,18 +793,217 @@ export default function ConsultaSOAP() {
             )}
           </div>
           
-          <div style={{ ...sectionBox('#64748B'), justifyContent: 'center', alignItems: 'center', borderStyle: 'dashed' }}>
-             <div style={{ display: 'flex', gap: '15px' }}>
-                <button onClick={() => alert("Módulo de Recetas en construcción")} style={{ background: '#ECFDF5', color: '#065F46', padding: '12px 20px', borderRadius: '8px', border: '1px solid #A7F3D0', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>💊</span> Emitir Receta
-                </button>
-                <button onClick={() => alert("Módulo de Estudios en construcción")} style={{ background: '#EFF6FF', color: '#1E40AF', padding: '12px 20px', borderRadius: '8px', border: '1px solid #BFDBFE', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>🔬</span> Solicitar Estudios
-                </button>
-             </div>
+          <div style={sectionBox('#64748B')}>
+            <h3 style={labelStyle('#334155')}><span>⚕️</span> Acciones Clínicas</h3>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => { setActivePanel(activePanel === 'receta' ? null : 'receta'); setRecetaMsg(null); }}
+                style={btnToggle(activePanel === 'receta', '#065F46', '#ECFDF5')}
+              >
+                <span>💊</span> {activePanel === 'receta' ? 'Cerrar' : 'Emitir Receta'}
+              </button>
+              <button
+                onClick={() => { setActivePanel(activePanel === 'estudio' ? null : 'estudio'); setEstudioMsg(null); }}
+                style={btnToggle(activePanel === 'estudio', '#1E40AF', '#EFF6FF')}
+              >
+                <span>🔬</span> {activePanel === 'estudio' ? 'Cerrar' : 'Solicitar Estudios'}
+              </button>
+            </div>
+            <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: '#94A3B8' }}>
+              {isEditable ? 'Finaliza la consulta antes de emitir recetas.' : 'Puedes emitir recetas y órdenes de estudio desde aquí.'}
+            </p>
           </div>
         </div>
       </div>
+
+      {/* PANEL EXPANDIBLE: RECETA / ESTUDIOS */}
+      {activePanel === 'receta' && (
+        <div style={{ ...sectionBox('#065F46'), marginBottom: '20px' }}>
+          <h3 style={labelStyle('#065F46')}><span>💊</span> Emitir Receta Médica</h3>
+
+          {isEditable && (
+            <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '13px', color: '#92400E' }}>
+              La consulta debe estar <strong>Finalizada</strong> para emitir una receta válida.
+            </div>
+          )}
+
+          {recetaDetalles.map((det, idx) => (
+            <div key={idx} style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '8px', padding: '14px', marginBottom: '12px', position: 'relative' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontWeight: 700, fontSize: '13px', color: '#166534' }}>Medicamento {idx + 1}</span>
+                {recetaDetalles.length > 1 && (
+                  <button
+                    onClick={() => setRecetaDetalles(prev => prev.filter((_, i) => i !== idx))}
+                    style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }}
+                  >✕</button>
+                )}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '10px', marginBottom: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', color: '#6B7280', fontWeight: 600 }}>Medicamento *</label>
+                  <input
+                    style={inputInline}
+                    placeholder="Ej: Amoxicilina"
+                    value={det.medicamento}
+                    onChange={e => setRecetaDetalles(prev => prev.map((d, i) => i === idx ? { ...d, medicamento: e.target.value } : d))}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', color: '#6B7280', fontWeight: 600 }}>Concentración</label>
+                  <input
+                    style={inputInline}
+                    placeholder="Ej: 500mg"
+                    value={det.concentracion}
+                    onChange={e => setRecetaDetalles(prev => prev.map((d, i) => i === idx ? { ...d, concentracion: e.target.value } : d))}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', color: '#6B7280', fontWeight: 600 }}>Dosis</label>
+                  <input
+                    style={inputInline}
+                    placeholder="Ej: 1 comprimido"
+                    value={det.dosis}
+                    onChange={e => setRecetaDetalles(prev => prev.map((d, i) => i === idx ? { ...d, dosis: e.target.value } : d))}
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', color: '#6B7280', fontWeight: 600 }}>Frecuencia</label>
+                  <input
+                    style={inputInline}
+                    placeholder="Ej: Cada 8 horas"
+                    value={det.frecuencia}
+                    onChange={e => setRecetaDetalles(prev => prev.map((d, i) => i === idx ? { ...d, frecuencia: e.target.value } : d))}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', color: '#6B7280', fontWeight: 600 }}>Duración</label>
+                  <input
+                    style={inputInline}
+                    placeholder="Ej: 7 días"
+                    value={det.duracion}
+                    onChange={e => setRecetaDetalles(prev => prev.map((d, i) => i === idx ? { ...d, duracion: e.target.value } : d))}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', color: '#6B7280', fontWeight: 600 }}>Instrucciones</label>
+                  <input
+                    style={inputInline}
+                    placeholder="Ej: Tomar con alimentos"
+                    value={det.instrucciones}
+                    onChange={e => setRecetaDetalles(prev => prev.map((d, i) => i === idx ? { ...d, instrucciones: e.target.value } : d))}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <button
+            onClick={() => setRecetaDetalles(prev => [...prev, recetaVacio()])}
+            style={{ background: 'none', border: '1.5px dashed #6EE7B7', color: '#047857', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, width: '100%', marginBottom: '14px' }}
+          >
+            + Agregar Medicamento
+          </button>
+
+          <div style={{ marginBottom: '14px' }}>
+            <label style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Observaciones generales</label>
+            <textarea
+              style={{ ...textareaStyle, height: '60px' }}
+              placeholder="Indicaciones adicionales para el paciente..."
+              value={recetaObs}
+              onChange={e => setRecetaObs(e.target.value)}
+            />
+          </div>
+
+          {recetaMsg && (
+            <div style={{ padding: '10px 14px', borderRadius: '6px', marginBottom: '12px', background: recetaMsg.ok ? '#ECFDF5' : '#FEF2F2', color: recetaMsg.ok ? '#065F46' : '#991B1B', border: `1px solid ${recetaMsg.ok ? '#6EE7B7' : '#FECACA'}`, fontSize: '13px', fontWeight: 600 }}>
+              {recetaMsg.ok ? '✓' : '✕'} {recetaMsg.text}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={handleGuardarReceta} disabled={guardandoReceta} style={actionBtn('#065F46')}>
+              {guardandoReceta ? 'Emitiendo...' : '💊 Emitir Receta'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {activePanel === 'estudio' && (
+        <div style={{ ...sectionBox('#1E40AF'), marginBottom: '20px' }}>
+          <h3 style={labelStyle('#1E40AF')}><span>🔬</span> Solicitar Orden de Estudio</h3>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px', marginBottom: '14px' }}>
+            <div>
+              <label style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Tipo de Estudio *</label>
+              <select
+                style={{ ...inputInline, height: '38px' }}
+                value={tipoEstudio}
+                onChange={e => setTipoEstudio(e.target.value)}
+              >
+                {TIPOS_ESTUDIO.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Descripción *</label>
+              <input
+                style={inputInline}
+                placeholder="Ej: Hemograma completo, glucosa, creatinina..."
+                value={descEstudio}
+                onChange={e => setDescEstudio(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '14px' }}>
+            <label style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Indicación Clínica</label>
+            <input
+              style={inputInline}
+              placeholder="Ej: Control de diabetes, seguimiento post-consulta..."
+              value={indicEstudio}
+              onChange={e => setIndicEstudio(e.target.value)}
+            />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: urgenteEstudio ? '10px' : '14px' }}>
+            <input
+              type="checkbox"
+              id="urgente"
+              checked={urgenteEstudio}
+              onChange={e => setUrgenteEstudio(e.target.checked)}
+              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+            />
+            <label htmlFor="urgente" style={{ fontSize: '13px', fontWeight: 600, color: '#DC2626', cursor: 'pointer' }}>
+              🚨 Marcar como urgente
+            </label>
+          </div>
+
+          {urgenteEstudio && (
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Motivo de urgencia</label>
+              <input
+                style={{ ...inputInline, borderColor: '#FCA5A5' }}
+                placeholder="Explique por qué es urgente..."
+                value={motivoUrgEstudio}
+                onChange={e => setMotivoUrgEstudio(e.target.value)}
+              />
+            </div>
+          )}
+
+          {estudioMsg && (
+            <div style={{ padding: '10px 14px', borderRadius: '6px', marginBottom: '12px', background: estudioMsg.ok ? '#EFF6FF' : '#FEF2F2', color: estudioMsg.ok ? '#1E40AF' : '#991B1B', border: `1px solid ${estudioMsg.ok ? '#BFDBFE' : '#FECACA'}`, fontSize: '13px', fontWeight: 600 }}>
+              {estudioMsg.ok ? '✓' : '✕'} {estudioMsg.text}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={handleGuardarEstudio} disabled={guardandoEstudio} style={actionBtn('#1E40AF')}>
+              {guardandoEstudio ? 'Enviando...' : '🔬 Crear Orden de Estudio'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* SECCIÓN PLAN (P) - ANCHO COMPLETO */}
       <div style={sectionBox('#F59E0B')}>

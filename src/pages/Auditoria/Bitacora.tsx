@@ -37,13 +37,6 @@ const MODULOS = [
 ];
 
 export default function Bitacora() {
-  // Permisos: Administrador o Auditor
-  const isAdminOrAuditor = hasRole('Administrador', 'Auditor');
-
-  if (!isAdminOrAuditor) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   const [entries, setEntries] = useState<BitacoraEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +58,9 @@ export default function Bitacora() {
   const [total, setTotal] = useState(0);
   const [count, setCount] = useState(0);
   const POR_PAGINA = 20;
+
+  // Permisos — después de todos los hooks para respetar las reglas de hooks
+  const canAccess = hasRole('Administrativo', 'Director', 'Auditor');
 
   const fetchEntries = useCallback(async (currentFilters: BitacoraFilters) => {
     setLoading(true);
@@ -163,6 +159,8 @@ export default function Bitacora() {
   };
 
   const totalPaginas = Math.ceil(count / POR_PAGINA);
+
+  if (!canAccess) return <Navigate to="/dashboard" replace />;
 
   return (
     <div style={{ padding: '32px' }}>

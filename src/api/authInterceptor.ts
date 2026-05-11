@@ -118,9 +118,12 @@ export function attachAuthInterceptors(client: AxiosInstance) {
       const original = error.config as RetriableConfig | undefined
       const status = error.response?.status
 
-      // 403 → redirigir a pantalla de acceso denegado (sin cerrar sesión)
+      // 403 en lecturas (GET/HEAD) → redirigir a acceso denegado (sin cerrar sesión).
+      // En mutaciones (POST/PATCH/PUT/DELETE) dejar que el componente maneje el error.
       if (status === 403) {
-        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/acceso-denegado')) {
+        const method = (original?.method ?? 'GET').toUpperCase()
+        const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
+        if (!isMutation && typeof window !== 'undefined' && !window.location.pathname.startsWith('/acceso-denegado')) {
           window.location.assign('/acceso-denegado')
         }
         return Promise.reject(error)

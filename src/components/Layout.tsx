@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getStoredUser } from '../utils/auth'
+import { exportarTenant } from '../services/configuracionService'
+
+const LS_ENABLED   = 'histolink_auto_backup_enabled'
+const LS_HOUR      = 'histolink_auto_backup_hour'
+const LS_LAST_DATE = 'histolink_auto_backup_last_date'
 
 // ── Pacientes recientes (guardados en sessionStorage) ─────────────────────────
 interface PacienteReciente { id: number; nombre: string; ci: string }
@@ -184,8 +189,8 @@ const NAV: NavSection[] = [
   {
     title: 'Seguridad y Admin',
     items: [
-      { label: 'Auditoría',      path: '/auditoria/bitacora', icon: 'shield', roles: ['Auditor', 'Director', 'ADMIN', 'Admin'] },
-      { label: 'Configuración',  path: '/configuracion', icon: 'settings', roles: ['Administrativo', 'Director'] },
+      { label: 'Auditoría',       path: '/auditoria/bitacora', icon: 'shield',   roles: ['Auditor', 'Administrativo', 'Director'] },
+      { label: 'Backup & Restore', path: '/configuracion',     icon: 'settings', roles: ['Administrativo', 'Director'] },
     ],
   },
   {
@@ -229,6 +234,23 @@ export default function Layout() {
     const handler = () => setRecientes(getPacientesRecientes())
     window.addEventListener('pacientes-recientes-updated', handler)
     return () => window.removeEventListener('pacientes-recientes-updated', handler)
+  }, [])
+
+  // Auto-backup scheduler global
+  useEffect(() => {
+    const run = async () => {
+      if (localStorage.getItem(LS_ENABLED) !== 'true') return
+      const hour = parseInt(localStorage.getItem(LS_HOUR) ?? '3', 10)
+      const now = new Date()
+      const today = now.toISOString().slice(0, 10)
+      if (now.getHours() >= hour && localStorage.getItem(LS_LAST_DATE) !== today) {
+        localStorage.setItem(LS_LAST_DATE, today)
+        try { await exportarTenant() } catch { /* silencioso */ }
+      }
+    }
+    void run()
+    const id = setInterval(() => void run(), 60_000)
+    return () => clearInterval(id)
   }, [])
 
   // Atajos de teclado globales

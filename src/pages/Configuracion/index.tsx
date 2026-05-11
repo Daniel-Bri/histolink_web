@@ -1,63 +1,55 @@
 import { useState, useEffect, useRef } from 'react'
 import { getStoredUser } from '../../utils/auth'
 import {
-  getConfiguracion,
-  patchConfiguracion,
   exportarTenant,
   backupCompleto,
   restoreBackup,
-  getGestiones,
-  crearGestion,
-  congelarGestion,
-  descongelarGestion,
-  type ConfiguracionTenant,
-  type GestionAnual,
 } from '../../services/configuracionService'
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── localStorage keys ─────────────────────────────────────────────────────────
+const LS_ENABLED   = 'histolink_auto_backup_enabled'
+const LS_HOUR      = 'histolink_auto_backup_hour'
+const LS_LAST_DATE = 'histolink_auto_backup_last_date'
 
-type Tab = 'establecimiento' | 'modulos' | 'backup' | 'gestiones'
-
-const MONEDAS = [
-  { value: 'BOB', label: 'Boliviano (BOB)' },
-  { value: 'USD', label: 'Dólar (USD)' },
-  { value: 'PEN', label: 'Sol (PEN)' },
-  { value: 'ARS', label: 'Peso AR (ARS)' },
-  { value: 'CLP', label: 'Peso CL (CLP)' },
-]
-
-// ── Estilos base ─────────────────────────────────────────────────────────────
+// ── Estilos ───────────────────────────────────────────────────────────────────
 
 const card: React.CSSProperties = {
   background: '#fff',
   borderRadius: '12px',
   border: '1px solid #E2E8F0',
   padding: '24px',
-  marginBottom: '16px',
+  marginBottom: '20px',
   boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
 }
 
-const fieldRow: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '4px',
-  marginBottom: '16px',
+const sectionTitle: React.CSSProperties = {
+  fontSize: '16px',
+  fontWeight: 700,
+  color: '#1E293B',
+  margin: '0 0 4px',
 }
 
-const label: React.CSSProperties = {
+const sectionDesc: React.CSSProperties = {
+  fontSize: '13px',
+  color: '#64748B',
+  margin: '0 0 20px',
+}
+
+const lbl: React.CSSProperties = {
   fontSize: '13px',
   fontWeight: 600,
   color: '#374151',
+  display: 'block',
+  marginBottom: '4px',
 }
 
-const input: React.CSSProperties = {
+const inp: React.CSSProperties = {
   border: '1px solid #D1D5DB',
   borderRadius: '8px',
   padding: '8px 12px',
   fontSize: '14px',
   outline: 'none',
-  width: '100%',
-  boxSizing: 'border-box',
+  boxSizing: 'border-box' as const,
 }
 
 const btnPrimary: React.CSSProperties = {
@@ -65,18 +57,7 @@ const btnPrimary: React.CSSProperties = {
   color: '#fff',
   border: 'none',
   borderRadius: '8px',
-  padding: '8px 20px',
-  fontSize: '13px',
-  fontWeight: 600,
-  cursor: 'pointer',
-}
-
-const btnSecondary: React.CSSProperties = {
-  background: '#F1F5F9',
-  color: '#334155',
-  border: '1px solid #CBD5E1',
-  borderRadius: '8px',
-  padding: '8px 20px',
+  padding: '9px 22px',
   fontSize: '13px',
   fontWeight: 600,
   cursor: 'pointer',
@@ -87,126 +68,104 @@ const btnDanger: React.CSSProperties = {
   color: '#DC2626',
   border: '1px solid #FECACA',
   borderRadius: '8px',
-  padding: '8px 20px',
+  padding: '9px 22px',
   fontSize: '13px',
   fontWeight: 600,
   cursor: 'pointer',
 }
 
-// ── Componente principal ──────────────────────────────────────────────────────
+const btnSecondary: React.CSSProperties = {
+  background: '#F1F5F9',
+  color: '#334155',
+  border: '1px solid #CBD5E1',
+  borderRadius: '8px',
+  padding: '9px 22px',
+  fontSize: '13px',
+  fontWeight: 600,
+  cursor: 'pointer',
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function formatHour(h: number) {
+  return `${String(h).padStart(2, '0')}:00`
+}
+
+function nextBackupLabel(hour: number): string {
+  const now = new Date()
+  const target = new Date()
+  target.setHours(hour, 0, 0, 0)
+  if (now >= target) target.setDate(target.getDate() + 1)
+  return target.toLocaleString('es-BO', { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
+
+// ── Componente ────────────────────────────────────────────────────────────────
 
 export default function Configuracion() {
-  const user = getStoredUser()
+  const user        = getStoredUser()
   const isSuperadmin = user?.is_staff === true
 
-  const [tab, setTab] = useState<Tab>('establecimiento')
-  const [config, setConfig] = useState<ConfiguracionTenant | null>(null)
-  const [gestiones, setGestiones] = useState<GestionAnual[]>([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [msg, setMsg] = useState<{ tipo: 'ok' | 'err'; texto: string } | null>(null)
+  // Auto-backup state (persisted in localStorage)
+  const [autoEnabled, setAutoEnabled] = useState(() => localStorage.getItem(LS_ENABLED) === 'true')
+  const [autoHour,    setAutoHour]    = useState(() => parseInt(localStorage.getItem(LS_HOUR) ?? '3', 10))
+  const [autoSaved,   setAutoSaved]   = useState(false)
+  const lastAutoDate = localStorage.getItem(LS_LAST_DATE) ?? '—'
 
-  // Campos del establecimiento
-  const [emailContacto, setEmailContacto] = useState('')
-  const [sitioWeb, setSitioWeb]           = useState('')
-  const [moneda, setMoneda]               = useState('BOB')
-  const [zonaHoraria, setZonaHoraria]     = useState('America/La_Paz')
-  const [dirty, setDirty]                 = useState(false)
-
-  // Módulos
-  const [modulosHabilitados, setModulosHabilitados] = useState<string[]>([])
-
-  // Backup
-  const [backupLoading, setBackupLoading] = useState(false)
-  const [restoreFile, setRestoreFile]     = useState<File | null>(null)
-  const [restoreLoading, setRestoreLoading] = useState(false)
+  // Manual backup / restore state
+  const [backupLoading,   setBackupLoading]   = useState(false)
+  const [restoreFile,     setRestoreFile]     = useState<File | null>(null)
+  const [restoreLoading,  setRestoreLoading]  = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Gestiones
-  const [nuevoAño, setNuevoAño]   = useState<string>('')
-  const [nuevaDesc, setNuevaDesc] = useState('')
-  const [gestionLoading, setGestionLoading] = useState(false)
+  // Flash messages
+  const [msg, setMsg] = useState<{ tipo: 'ok' | 'err'; texto: string } | null>(null)
 
-  useEffect(() => {
-    void (async () => {
-      try {
-        const [cfg, gest] = await Promise.all([
-          getConfiguracion(),
-          getGestiones(),
-        ])
-        setConfig(cfg)
-        setGestiones(gest)
-        setEmailContacto(cfg.email_contacto)
-        setSitioWeb(cfg.sitio_web)
-        setMoneda(cfg.moneda)
-        setZonaHoraria(cfg.zona_horaria)
-        setModulosHabilitados(cfg.modulos_habilitados)
-      } catch {
-        setMsg({ tipo: 'err', texto: 'No se pudo cargar la configuración.' })
-      } finally {
-        setLoading(false)
-      }
-    })()
-  }, [])
-
-  // Ctrl+S global para guardar
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault()
-        if (dirty && tab === 'establecimiento') void handleGuardar()
-        if (tab === 'modulos') void handleGuardarModulos()
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  })
-
-  const flash = (tipo: 'ok' | 'err', texto: string) => {
+  function flash(tipo: 'ok' | 'err', texto: string) {
     setMsg({ tipo, texto })
-    setTimeout(() => setMsg(null), 3500)
+    setTimeout(() => setMsg(null), 4000)
   }
 
-  async function handleGuardar() {
-    setSaving(true)
-    try {
-      const updated = await patchConfiguracion({ email_contacto: emailContacto, sitio_web: sitioWeb, moneda, zona_horaria: zonaHoraria })
-      setConfig(updated)
-      setDirty(false)
-      flash('ok', 'Configuración guardada correctamente.')
-    } catch {
-      flash('err', 'Error al guardar la configuración.')
-    } finally {
-      setSaving(false)
+  // ── Auto-backup scheduler ──────────────────────────────────────────────────
+  useEffect(() => {
+    const runIfNeeded = async () => {
+      if (!autoEnabled) return
+      const now = new Date()
+      const last = localStorage.getItem(LS_LAST_DATE)
+      if (now.getHours() >= autoHour && last !== todayStr()) {
+        localStorage.setItem(LS_LAST_DATE, todayStr())
+        try {
+          await exportarTenant()
+          flash('ok', `Backup automático ejecutado a las ${formatHour(now.getHours())}.`)
+        } catch {
+          flash('err', 'El backup automático falló. Revisa tu conexión.')
+        }
+      }
     }
+    void runIfNeeded()
+    const id = setInterval(() => void runIfNeeded(), 60_000)
+    return () => clearInterval(id)
+  }, [autoEnabled, autoHour])
+
+  // ── Guardar configuración de auto-backup ───────────────────────────────────
+  function handleSaveAuto() {
+    localStorage.setItem(LS_ENABLED, String(autoEnabled))
+    localStorage.setItem(LS_HOUR,    String(autoHour))
+    setAutoSaved(true)
+    setTimeout(() => setAutoSaved(false), 2000)
   }
 
-  async function handleGuardarModulos() {
-    setSaving(true)
-    try {
-      const updated = await patchConfiguracion({ modulos_habilitados: modulosHabilitados })
-      setConfig(updated)
-      flash('ok', 'Módulos actualizados.')
-    } catch {
-      flash('err', 'Error al guardar módulos.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  function toggleModulo(codigo: string) {
-    setModulosHabilitados(prev =>
-      prev.includes(codigo) ? prev.filter(c => c !== codigo) : [...prev, codigo],
-    )
-  }
-
+  // ── Backup manual ──────────────────────────────────────────────────────────
   async function handleExportarTenant() {
     setBackupLoading(true)
     try {
       await exportarTenant()
-      flash('ok', 'Exportación descargada.')
+      flash('ok', 'Backup del establecimiento descargado correctamente.')
     } catch {
-      flash('err', 'Error al exportar.')
+      flash('err', 'Error al generar el backup. Intenta de nuevo.')
     } finally {
       setBackupLoading(false)
     }
@@ -216,17 +175,18 @@ export default function Configuracion() {
     setBackupLoading(true)
     try {
       await backupCompleto()
-      flash('ok', 'Backup completo descargado.')
+      flash('ok', 'Backup completo del sistema descargado.')
     } catch {
-      flash('err', 'Error al generar backup completo.')
+      flash('err', 'Error al generar el backup completo.')
     } finally {
       setBackupLoading(false)
     }
   }
 
+  // ── Restore ────────────────────────────────────────────────────────────────
   async function handleRestore() {
     if (!restoreFile) return
-    if (!window.confirm(`¿Restaurar desde "${restoreFile.name}"? Esto sobreescribirá datos existentes.`)) return
+    if (!window.confirm(`¿Restaurar desde "${restoreFile.name}"?\n\nEsta operación sobreescribirá datos existentes. No se puede deshacer.`)) return
     setRestoreLoading(true)
     try {
       const res = await restoreBackup(restoreFile)
@@ -234,365 +194,215 @@ export default function Configuracion() {
       setRestoreFile(null)
       if (fileInputRef.current) fileInputRef.current.value = ''
     } catch {
-      flash('err', 'Error al restaurar el backup.')
+      flash('err', 'Error al restaurar el backup. Verifica que el archivo sea válido.')
     } finally {
       setRestoreLoading(false)
     }
   }
 
-  async function handleCrearGestion() {
-    const año = parseInt(nuevoAño, 10)
-    if (!año || año < 2000 || año > 2100) { flash('err', 'Año inválido.'); return }
-    setGestionLoading(true)
-    try {
-      const nueva = await crearGestion(año, nuevaDesc)
-      setGestiones(prev => [nueva, ...prev])
-      setNuevoAño('')
-      setNuevaDesc('')
-      flash('ok', `Gestión ${año} creada.`)
-    } catch {
-      flash('err', 'No se pudo crear la gestión (¿ya existe ese año?).')
-    } finally {
-      setGestionLoading(false)
-    }
-  }
-
-  async function handleCongelar(id: number) {
-    try {
-      const updated = await congelarGestion(id)
-      setGestiones(prev => prev.map(g => g.id === id ? updated : g))
-      flash('ok', 'Gestión congelada.')
-    } catch {
-      flash('err', 'Error al congelar.')
-    }
-  }
-
-  async function handleDescongelar(id: number) {
-    try {
-      const updated = await descongelarGestion(id)
-      setGestiones(prev => prev.map(g => g.id === id ? updated : g))
-      flash('ok', 'Gestión descongelada.')
-    } catch {
-      flash('err', 'Error al descongelar.')
-    }
-  }
-
-  if (loading) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center', color: '#64748B' }}>
-        Cargando configuración…
-      </div>
-    )
-  }
-
-  const TABS: { id: Tab; label: string }[] = [
-    { id: 'establecimiento', label: 'Establecimiento' },
-    { id: 'modulos',         label: 'Módulos' },
-    { id: 'backup',          label: 'Backup / Restore' },
-    { id: 'gestiones',       label: 'Gestiones Anuales' },
-  ]
-
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div style={{ padding: '28px 32px', maxWidth: '860px', margin: '0 auto', fontFamily: "'Segoe UI', sans-serif" }}>
+    <div style={{ padding: '28px 32px', maxWidth: '820px', margin: '0 auto', fontFamily: "'Segoe UI', sans-serif" }}>
 
       {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
+      <div style={{ marginBottom: '28px' }}>
         <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#0F172A', margin: '0 0 4px' }}>
-          Configuración
+          Backup y Restauración
         </h1>
         <p style={{ color: '#64748B', fontSize: '14px', margin: 0 }}>
-          Personaliza tu establecimiento, módulos habilitados y gestión de datos.
+          Gestiona las copias de seguridad de los datos clínicos del establecimiento.
         </p>
       </div>
 
       {/* Flash */}
       {msg && (
         <div style={{
-          padding: '10px 16px', borderRadius: '8px', marginBottom: '16px',
+          padding: '12px 16px', borderRadius: '8px', marginBottom: '20px',
           fontSize: '13px', fontWeight: 500,
           background: msg.tipo === 'ok' ? '#ECFDF5' : '#FEF2F2',
           color:      msg.tipo === 'ok' ? '#065F46' : '#991B1B',
           border:     `1px solid ${msg.tipo === 'ok' ? '#A7F3D0' : '#FECACA'}`,
         }}>
-          {msg.texto}
+          {msg.tipo === 'ok' ? '✓ ' : '✕ '}{msg.texto}
         </div>
       )}
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '2px', marginBottom: '20px', background: '#F1F5F9', borderRadius: '10px', padding: '4px' }}>
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
+      {/* ── Sección 1: Backup Automático ── */}
+      <div style={card}>
+        <h2 style={sectionTitle}>Backup Automático</h2>
+        <p style={sectionDesc}>
+          Configura una hora diaria para generar el backup automáticamente mientras la aplicación esté abierta.
+        </p>
+
+        {/* Toggle */}
+        <label style={{
+          display: 'flex', alignItems: 'center', gap: '12px',
+          marginBottom: '20px', cursor: 'pointer',
+          padding: '12px 16px', borderRadius: '10px',
+          background: autoEnabled ? '#ECFDF5' : '#F8FAFC',
+          border: `1px solid ${autoEnabled ? '#A7F3D0' : '#E2E8F0'}`,
+          userSelect: 'none',
+        }}>
+          <div
+            onClick={() => setAutoEnabled(prev => !prev)}
             style={{
-              flex: 1, padding: '8px 12px', border: 'none', borderRadius: '7px',
-              fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-              background: tab === t.id ? '#fff' : 'transparent',
-              color:      tab === t.id ? '#0F172A' : '#64748B',
-              boxShadow:  tab === t.id ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
-              transition: 'all 0.15s',
+              width: '44px', height: '24px', borderRadius: '12px', flexShrink: 0,
+              background: autoEnabled ? '#00A896' : '#CBD5E1',
+              position: 'relative', cursor: 'pointer', transition: 'background 0.2s',
             }}
           >
-            {t.label}
+            <div style={{
+              position: 'absolute',
+              top: '3px',
+              left: autoEnabled ? '23px' : '3px',
+              width: '18px', height: '18px',
+              borderRadius: '50%', background: '#fff',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              transition: 'left 0.2s',
+            }} />
+          </div>
+          <div>
+            <span style={{ fontSize: '14px', fontWeight: 600, color: autoEnabled ? '#065F46' : '#475569' }}>
+              {autoEnabled ? 'Backup automático activado' : 'Backup automático desactivado'}
+            </span>
+            <p style={{ fontSize: '12px', color: '#94A3B8', margin: '2px 0 0' }}>
+              Se ejecuta una vez al día en la hora configurada
+            </p>
+          </div>
+        </label>
+
+        {/* Hora */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
+          <div>
+            <label style={lbl}>Hora de ejecución</label>
+            <select
+              style={{ ...inp, width: '160px' }}
+              value={autoHour}
+              onChange={e => setAutoHour(parseInt(e.target.value, 10))}
+              disabled={!autoEnabled}
+            >
+              {Array.from({ length: 24 }, (_, h) => (
+                <option key={h} value={h}>
+                  {formatHour(h)}{h === 3 ? ' (recomendado)' : h === 0 ? ' (medianoche)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            style={{ ...btnPrimary, opacity: autoSaved ? 0.7 : 1 }}
+            onClick={handleSaveAuto}
+          >
+            {autoSaved ? '✓ Guardado' : 'Guardar configuración'}
           </button>
-        ))}
+        </div>
+
+        {/* Estado */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px',
+          background: '#F8FAFC', borderRadius: '8px', padding: '14px 18px',
+          fontSize: '13px', color: '#475569',
+        }}>
+          <div>
+            <span style={{ fontWeight: 600, display: 'block', marginBottom: '2px' }}>Último backup automático</span>
+            <span style={{ color: lastAutoDate === '—' ? '#94A3B8' : '#059669' }}>{lastAutoDate}</span>
+          </div>
+          {autoEnabled && (
+            <div>
+              <span style={{ fontWeight: 600, display: 'block', marginBottom: '2px' }}>Próximo backup</span>
+              <span style={{ color: '#0369A1' }}>{nextBackupLabel(autoHour)}</span>
+            </div>
+          )}
+        </div>
+
+        <p style={{ fontSize: '12px', color: '#94A3B8', margin: '12px 0 0', fontStyle: 'italic' }}>
+          ⚠ El backup automático sólo se ejecuta mientras la aplicación está abierta en el navegador.
+        </p>
       </div>
 
-      {/* ── Tab: Establecimiento ── */}
-      {tab === 'establecimiento' && (
-        <div style={card}>
-          <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#1E293B', margin: '0 0 20px' }}>
-            Datos del establecimiento
-          </h2>
-          <div style={fieldRow}>
-            <label style={label}>Email de contacto</label>
-            <input
-              style={input} type="email" value={emailContacto}
-              onChange={e => { setEmailContacto(e.target.value); setDirty(true) }}
-              placeholder="contacto@establecimiento.com"
-            />
-          </div>
-          <div style={fieldRow}>
-            <label style={label}>Sitio web</label>
-            <input
-              style={input} type="text" value={sitioWeb}
-              onChange={e => { setSitioWeb(e.target.value); setDirty(true) }}
-              placeholder="https://www.ejemplo.com"
-            />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div style={fieldRow}>
-              <label style={label}>Moneda</label>
-              <select
-                style={input} value={moneda}
-                onChange={e => { setMoneda(e.target.value); setDirty(true) }}
-              >
-                {MONEDAS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-              </select>
-            </div>
-            <div style={fieldRow}>
-              <label style={label}>Zona horaria</label>
-              <input
-                style={input} type="text" value={zonaHoraria}
-                onChange={e => { setZonaHoraria(e.target.value); setDirty(true) }}
-                placeholder="America/La_Paz"
-              />
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-            <button style={btnPrimary} onClick={() => void handleGuardar()} disabled={saving || !dirty}>
-              {saving ? 'Guardando…' : 'Guardar cambios'}
-            </button>
-            {dirty && (
-              <button style={btnSecondary} onClick={() => {
-                setEmailContacto(config?.email_contacto ?? '')
-                setSitioWeb(config?.sitio_web ?? '')
-                setMoneda(config?.moneda ?? 'BOB')
-                setZonaHoraria(config?.zona_horaria ?? 'America/La_Paz')
-                setDirty(false)
-              }}>
-                Descartar
-              </button>
-            )}
-          </div>
-          {dirty && (
-            <p style={{ fontSize: '12px', color: '#92400E', marginTop: '10px', background: '#FFFBEB', padding: '6px 12px', borderRadius: '6px', border: '1px solid #FDE68A' }}>
-              Tienes cambios sin guardar. Usa Ctrl+S para guardar rápidamente.
-            </p>
-          )}
-        </div>
-      )}
+      {/* ── Sección 2: Backup Manual ── */}
+      <div style={card}>
+        <h2 style={sectionTitle}>Backup Manual</h2>
+        <p style={sectionDesc}>
+          Genera y descarga ahora una copia de seguridad con todos los datos clínicos de este establecimiento.
+        </p>
 
-      {/* ── Tab: Módulos ── */}
-      {tab === 'modulos' && (
-        <div style={card}>
-          <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#1E293B', margin: '0 0 4px' }}>
-            Módulos habilitados
-          </h2>
-          <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 20px' }}>
-            Los módulos desmarcados quedarán ocultos para los usuarios de este establecimiento.
-            Si no se selecciona ninguno, todos estarán habilitados.
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
-            {(config?.modulos_disponibles ?? []).map(m => (
-              <label
-                key={m.codigo}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  padding: '10px 14px', borderRadius: '8px', cursor: 'pointer',
-                  border: `1px solid ${modulosHabilitados.includes(m.codigo) ? '#A7F3D0' : '#E2E8F0'}`,
-                  background: modulosHabilitados.includes(m.codigo) ? '#ECFDF5' : '#F8FAFC',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={modulosHabilitados.includes(m.codigo)}
-                  onChange={() => toggleModulo(m.codigo)}
-                  style={{ accentColor: '#00A896', width: '16px', height: '16px' }}
-                />
-                <span style={{ fontSize: '13px', fontWeight: 500, color: '#1E293B' }}>{m.nombre}</span>
-                <span style={{ fontSize: '11px', color: '#94A3B8', marginLeft: 'auto' }}>{m.codigo}</span>
-              </label>
-            ))}
-          </div>
-          <button style={btnPrimary} onClick={() => void handleGuardarModulos()} disabled={saving}>
-            {saving ? 'Guardando…' : 'Guardar módulos'}
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <button
+            style={btnPrimary}
+            onClick={() => void handleExportarTenant()}
+            disabled={backupLoading}
+          >
+            {backupLoading ? 'Generando…' : '⬇ Descargar backup del establecimiento'}
           </button>
-        </div>
-      )}
-
-      {/* ── Tab: Backup / Restore ── */}
-      {tab === 'backup' && (
-        <>
-          <div style={card}>
-            <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#1E293B', margin: '0 0 4px' }}>
-              Exportar datos del establecimiento
-            </h2>
-            <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 16px' }}>
-              Descarga un archivo JSON con todos los datos clínicos de tu establecimiento: pacientes, fichas, triajes y consultas.
-            </p>
-            <button style={btnPrimary} onClick={() => void handleExportarTenant()} disabled={backupLoading}>
-              {backupLoading ? 'Generando…' : 'Descargar exportación'}
-            </button>
-          </div>
 
           {isSuperadmin && (
-            <>
-              <div style={card}>
-                <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#1E293B', margin: '0 0 4px' }}>
-                  Backup completo del sistema
-                </h2>
-                <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 16px' }}>
-                  Solo superadmin. Genera un dumpdata completo de toda la base de datos.
-                </p>
-                <button style={btnPrimary} onClick={() => void handleBackupCompleto()} disabled={backupLoading}>
-                  {backupLoading ? 'Generando…' : 'Backup completo'}
-                </button>
-              </div>
-
-              <div style={card}>
-                <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#DC2626', margin: '0 0 4px' }}>
-                  Restaurar desde backup
-                </h2>
-                <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 16px' }}>
-                  Solo superadmin. Sube un archivo JSON previamente exportado con Backup completo.
-                  <strong style={{ color: '#DC2626' }}> Esta operación sobreescribe datos existentes.</strong>
-                </p>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".json"
-                    onChange={e => setRestoreFile(e.target.files?.[0] ?? null)}
-                    style={{ fontSize: '13px' }}
-                  />
-                  {restoreFile && (
-                    <button
-                      style={btnDanger}
-                      onClick={() => void handleRestore()}
-                      disabled={restoreLoading}
-                    >
-                      {restoreLoading ? 'Restaurando…' : 'Restaurar ahora'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </>
+            <button
+              style={btnSecondary}
+              onClick={() => void handleBackupCompleto()}
+              disabled={backupLoading}
+            >
+              {backupLoading ? 'Generando…' : '⬇ Backup completo del sistema'}
+            </button>
           )}
-        </>
-      )}
+        </div>
 
-      {/* ── Tab: Gestiones Anuales ── */}
-      {tab === 'gestiones' && (
-        <>
-          <div style={card}>
-            <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#1E293B', margin: '0 0 4px' }}>
-              Nueva gestión anual
-            </h2>
-            <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 16px' }}>
-              Crea una gestión por año. Una vez congelada, los datos de ese año serán de solo lectura.
-            </p>
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <div style={{ ...fieldRow, marginBottom: 0 }}>
-                <label style={label}>Año</label>
-                <input
-                  style={{ ...input, width: '100px' }}
-                  type="number" value={nuevoAño} min={2000} max={2100}
-                  onChange={e => setNuevoAño(e.target.value)}
-                  placeholder={String(new Date().getFullYear())}
-                />
-              </div>
-              <div style={{ ...fieldRow, flex: 1, marginBottom: 0 }}>
-                <label style={label}>Descripción (opcional)</label>
-                <input
-                  style={input} value={nuevaDesc}
-                  onChange={e => setNuevaDesc(e.target.value)}
-                  placeholder="Ej. Gestión fiscal 2025"
-                />
-              </div>
-              <button style={btnPrimary} onClick={() => void handleCrearGestion()} disabled={gestionLoading || !nuevoAño}>
-                {gestionLoading ? 'Creando…' : 'Crear gestión'}
-              </button>
+        {isSuperadmin && (
+          <p style={{ fontSize: '12px', color: '#94A3B8', margin: '12px 0 0' }}>
+            "Backup completo" genera un dumpdata de toda la base de datos (solo superadmin).
+          </p>
+        )}
+      </div>
+
+      {/* ── Sección 3: Restaurar ── */}
+      {isSuperadmin && (
+        <div style={{ ...card, borderColor: '#FECACA', borderTop: '4px solid #DC2626' }}>
+          <h2 style={{ ...sectionTitle, color: '#DC2626' }}>Restaurar desde Backup</h2>
+          <p style={sectionDesc}>
+            Sube un archivo JSON generado previamente con "Backup completo".{' '}
+            <strong style={{ color: '#DC2626' }}>Esta operación sobreescribirá los datos existentes y no se puede deshacer.</strong>
+          </p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            <div style={{
+              border: '1.5px dashed #FECACA', borderRadius: '8px',
+              padding: '10px 16px', background: '#FFF5F5',
+            }}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={e => setRestoreFile(e.target.files?.[0] ?? null)}
+                style={{ fontSize: '13px', cursor: 'pointer' }}
+              />
             </div>
-          </div>
 
-          <div style={card}>
-            <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#1E293B', margin: '0 0 16px' }}>
-              Gestiones registradas
-            </h2>
-            {gestiones.length === 0 ? (
-              <p style={{ color: '#94A3B8', fontSize: '14px' }}>No hay gestiones creadas aún.</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {gestiones.map(g => (
-                  <div
-                    key={g.id}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '12px',
-                      padding: '12px 16px', borderRadius: '8px',
-                      border: `1px solid ${g.congelada ? '#BFDBFE' : '#E2E8F0'}`,
-                      background: g.congelada ? '#EFF6FF' : '#F8FAFC',
-                    }}
-                  >
-                    <span style={{ fontSize: '18px', fontWeight: 700, color: '#1E293B', minWidth: '50px' }}>
-                      {g.año}
-                    </span>
-                    <span style={{
-                      fontSize: '11px', fontWeight: 700,
-                      padding: '3px 10px', borderRadius: '20px',
-                      background: g.congelada ? '#DBEAFE' : '#DCFCE7',
-                      color:      g.congelada ? '#1D4ED8' : '#15803D',
-                    }}>
-                      {g.congelada ? 'CONGELADA' : 'ACTIVA'}
-                    </span>
-                    {g.descripcion && (
-                      <span style={{ fontSize: '13px', color: '#64748B', flex: 1 }}>{g.descripcion}</span>
-                    )}
-                    {g.congelada && g.fecha_congelamiento && (
-                      <span style={{ fontSize: '12px', color: '#94A3B8' }}>
-                        {new Date(g.fecha_congelamiento).toLocaleDateString('es-BO')}
-                      </span>
-                    )}
-                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-                      {!g.congelada ? (
-                        <button style={btnSecondary} onClick={() => void handleCongelar(g.id)}>
-                          Congelar
-                        </button>
-                      ) : isSuperadmin ? (
-                        <button style={btnDanger} onClick={() => void handleDescongelar(g.id)}>
-                          Descongelar
-                        </button>
-                      ) : (
-                        <span style={{ fontSize: '12px', color: '#94A3B8' }}>Solo superadmin puede descongelar</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+            {restoreFile && (
+              <button
+                style={btnDanger}
+                onClick={() => void handleRestore()}
+                disabled={restoreLoading}
+              >
+                {restoreLoading ? 'Restaurando…' : '↩ Restaurar ahora'}
+              </button>
             )}
           </div>
-        </>
+
+          {restoreFile && (
+            <p style={{ fontSize: '12px', color: '#DC2626', margin: '10px 0 0', fontWeight: 600 }}>
+              Archivo seleccionado: {restoreFile.name} ({(restoreFile.size / 1024).toFixed(1)} KB)
+            </p>
+          )}
+        </div>
       )}
+
+      {!isSuperadmin && (
+        <div style={{ ...card, background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+          <p style={{ fontSize: '13px', color: '#94A3B8', margin: 0, textAlign: 'center' }}>
+            La restauración de backups requiere permisos de superadministrador.
+          </p>
+        </div>
+      )}
+
     </div>
   )
 }
