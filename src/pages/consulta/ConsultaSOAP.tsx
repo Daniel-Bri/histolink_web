@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   consultaService
@@ -117,6 +117,8 @@ export default function ConsultaSOAP() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [, setError] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const saveRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   const [searchTerm, setSearchTerm] = useState('');
   const [cieResults, setCieResults] = useState<DiagnosticoCIE10[]>([]);
@@ -197,13 +199,31 @@ export default function ConsultaSOAP() {
           return;
         }
 
-        const res = await consultaService.getById(Number(id));
-        setConsulta(res.data);
-        
+        let consultaData: ConsultaMedica | null = null;
+        try {
+          const res = await consultaService.getById(Number(id));
+          consultaData = res.data;
+        } catch (err: any) {
+          if (err.response?.status === 404) {
+            // ID puede ser un ID de ficha — buscar consulta existente o crear una nueva
+            const existing = await consultaService.getByFicha(Number(id));
+            const results = existing.data.results ?? [];
+            if (results.length > 0) {
+              consultaData = results.find(c => c.estado === 'BORRADOR') ?? results[0];
+            } else {
+              const created = await consultaService.create(Number(id));
+              consultaData = created.data;
+            }
+          } else {
+            throw err;
+          }
+        }
+        setConsulta(consultaData);
+
         // Cargar datos de triaje si existe
-        if (res.data.triaje) {
+        if (consultaData?.triaje) {
           try {
-            const tRes = await api.get(`triaje/${res.data.triaje}/`);
+            const tRes = await api.get(`triaje/${consultaData.triaje}/`);
             setTriajeData(tRes.data);
           } catch (e) { console.error("No triaje found"); }
         }
@@ -252,6 +272,7 @@ export default function ConsultaSOAP() {
   const handleUpdateField = (field: keyof ConsultaMedica, value: any) => {
     if (!consulta || isReadOnly) return;
     setConsulta(prev => prev ? { ...prev, [field]: value } : null);
+    setIsDirty(true);
   };
 
   const handleSave = async (silent = false) => {
@@ -266,9 +287,33 @@ export default function ConsultaSOAP() {
     try {
       if (!silent) setSaving(true);
       await consultaService.update(consulta.id, consulta);
+      setIsDirty(false);
       if (!silent) alert('Borrador guardado exitosamente.');
     } catch (err) { if (!silent) alert('Error al guardar.'); } finally { if (!silent) setSaving(false); }
   };
+
+  // Mantener ref actualizada para el atajo de teclado
+  useEffect(() => { saveRef.current = handleSave });
+
+  // Ctrl+S → guardar borrador
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (isEditable && !saving) void saveRef.current();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isEditable, saving]);
+
+  // Advertir al salir si hay cambios sin guardar
+  useEffect(() => {
+    if (!isDirty || !isEditable) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty, isEditable]);
 
   const handleFirmar = async () => {
     if (!consulta || isSigning || isFirmada) return;

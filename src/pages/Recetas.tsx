@@ -103,6 +103,15 @@ export default function Recetas() {
 
   useEffect(() => { cargarDatos() }, [])
 
+  // Advertir al salir si el formulario tiene datos sin guardar
+  useEffect(() => {
+    const hasDatos = consultaId !== '' || detalles.some(d => d.medicamento.trim() !== '')
+    if (!hasDatos) return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [consultaId, detalles])
+
   const handleAgregarMedicamento = () => {
     setDetalles(prev => [...prev, { ...detalleVacio(), orden: prev.length + 1 }])
   }

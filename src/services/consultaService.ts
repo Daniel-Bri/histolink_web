@@ -61,12 +61,13 @@ export interface FichaQueue {
 export type UpdateConsultaDTO = Partial<ConsultaMedica>;
 
 export const consultaService = {
-  getById: (id: number) => api.get<ConsultaMedica>(`consultas/${id}/`),
-  create: (fichaId: number) => api.post<ConsultaMedica>(`consultas/`, { ficha: fichaId }),
-  update: (id: number, data: UpdateConsultaDTO) => api.patch(`consultas/${id}/`, data),
-  completar: (id: number) => api.patch<ConsultaMedica>(`consultas/${id}/completar/`),
-  firmar: (id: number) => api.patch<ConsultaMedica>(`consultas/${id}/firmar/`),
+  getById: (id: number) => api.get<ConsultaMedica>(`consultas/consultas/${id}/`),
+  getByFicha: (fichaId: number) => api.get<{ results: ConsultaMedica[] }>('consultas/consultas/', { params: { ficha: fichaId } }),
+  create: (fichaId: number) => api.post<ConsultaMedica>('consultas/consultas/', { ficha: fichaId }),
+  update: (id: number, data: UpdateConsultaDTO) => api.patch(`consultas/consultas/${id}/`, data),
+  completar: (id: number) => api.patch<ConsultaMedica>(`consultas/consultas/${id}/completar/`),
+  firmar: (id: number) => api.patch<ConsultaMedica>(`consultas/consultas/${id}/firmar/`),
   searchCIE10: (termino: string) => api.get<DiagnosticoCIE10[]>(`auditoria/cie10/search/?q=${termino}`),
-  getAll: (params?: any) => api.get<{ results: ConsultaMedica[] }>('consultas/', { params }),
+  getAll: (params?: any) => api.get<{ results: ConsultaMedica[] }>('consultas/consultas/', { params }),
   getQueue: () => api.get<{ results: any[] }>('fichas/', { params: { en_curso: true, estado: 'EN_TRIAJE' } })
 };

@@ -86,6 +86,15 @@ export default function SolicitudEstudios() {
     void load()
   }, [puedeSolicitar])
 
+  // Advertir al salir si hay datos de solicitud sin enviar
+  useEffect(() => {
+    const hasDatos = consultaId !== null || descripcion.trim() !== ''
+    if (!hasDatos) return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [consultaId, descripcion])
+
   const consultasFiltradas = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return consultas
