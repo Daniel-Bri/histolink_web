@@ -183,7 +183,7 @@ const NAV: NavSection[] = [
     items: [
       { label: 'Clasificación IA', icon: 'cpu',      soon: true },
       { label: 'Riesgo Clínico',   icon: 'activity', soon: true },
-      { label: 'Blockchain',       icon: 'link',     soon: true },
+      { label: 'Identidad Blockchain', path: '/blockchain/identidad', icon: 'link', roles: ['Administrativo', 'Director'] },
     ],
   },
   {

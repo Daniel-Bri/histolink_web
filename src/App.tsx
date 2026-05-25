@@ -29,6 +29,7 @@ import UsuariosPorClinica from './pages/AdminTenants/UsuariosPorClinica'
 import Bitacora from './pages/Auditoria/Bitacora'
 import ConsultaSOAP from './pages/consulta/ConsultaSOAP'
 import './pages/Estudios.css' 
+import IdentidadBlockchain from './pages/IdentidadBlockchain'
 
 export default function App() {
   return (
@@ -69,6 +70,7 @@ export default function App() {
           <Route path="/admin/tenants/:id"        element={<TenantDetalle />} />
           <Route path="/admin/usuarios-clinica"   element={<UsuariosPorClinica />} />
           <Route path="/auditoria/bitacora"        element={<Bitacora />} />
+          <Route path="/blockchain/identidad" element={<IdentidadBlockchain />} />
         </Route>
         
         {/* Redirige la raíz al dashboard */}
