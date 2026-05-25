@@ -24,6 +24,8 @@ import Configuracion from './pages/Configuracion'
 import AdminTenants from './pages/AdminTenants'
 import TenantDetalle from './pages/AdminTenants/TenantDetalle'
 import Bitacora from './pages/Auditoria/Bitacora'
+import FichasDelDia from './pages/FichasDelDia'
+import Consentimientos from './pages/Consentimientos'
 import './pages/Estudios.css' 
 
 export default function App() {
@@ -48,6 +50,8 @@ export default function App() {
           <Route path="/urgencias"                    element={<UrgenciasPage />} />
           <Route path="/urgencias/:fichaId/triaje"  element={<TriajeForm />} />
           <Route path="/fichas/cola-dia"             element={<AperturaFichaColaDia />} />
+          <Route path="/fichas/dia"                  element={<FichasDelDia />} />
+          <Route path="/consentimientos"             element={<Consentimientos />} />
           <Route path="/historial"  element={<EnConstruccion titulo="Historial Clínico" />} />
           <Route path="/documentos" element={<EnConstruccion titulo="Documentos" />} />
           <Route path="/agenda"     element={<EnConstruccion titulo="Agenda" />} />

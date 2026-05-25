@@ -6,8 +6,9 @@ import { useAuth } from '../../hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import { hasRole } from '../../utils/auth';
 import { auditoriaService } from '../../services/auditoriaService';
-import { fetchUsuariosSinPerfil, UsuarioSinPerfil } from '../../services/usuarioService';
-import { BitacoraEntry, BitacoraFilters } from '../../types/auditoria.types';
+import { fetchUsuariosSinPerfil } from '../../services/usuarioService';
+import type { UsuarioSinPerfil } from '../../services/usuarioService';
+import type { BitacoraEntry, BitacoraFilters } from '../../types/auditoria.types';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import AlertError from '../../components/AlertError';
 import SelectField from '../../components/ui/SelectField';
@@ -41,10 +42,10 @@ const MODULOS = [
 export default function Bitacora() {
   const { user } = useAuth();
   
-  // Permisos: Administrador o Auditor
-  const isAdminOrAuditor = hasRole('Administrador', 'Auditor');
+  // Permisos: Administrador, Auditor o Director
+  const hasAccessToBitacora = hasRole('Administrador', 'Auditor', 'Director');
 
-  if (!isAdminOrAuditor) {
+  if (!hasAccessToBitacora) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -75,12 +76,13 @@ export default function Bitacora() {
     setError(null);
     try {
       const data = await auditoriaService.getBitacora(currentFilters);
-      setEntries(data.results);
-      setCount(data.count);
-      setTotal(data.count);
+      setEntries(data.results ?? []);
+      setCount(data.count ?? 0);
+      setTotal(data.count ?? 0);
     } catch (err) {
       console.error(err);
       setError('Error al cargar la bitácora de auditoría.');
+      setEntries([]);
     } finally {
       setLoading(false);
     }
