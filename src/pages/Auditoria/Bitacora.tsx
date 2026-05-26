@@ -38,12 +38,6 @@ const MODULOS = [
 ];
 
 export default function Bitacora() {
-  // Permisos: Administrador o Auditor
-  const isAdminOrAuditor = hasRole('Administrador', 'Auditor');
-
-  if (!isAdminOrAuditor) {
-    return <Navigate to="/dashboard" replace />;
-  }
 
 
   const [entries, setEntries] = useState<BitacoraEntry[]>([]);
@@ -76,12 +70,13 @@ export default function Bitacora() {
     setError(null);
     try {
       const data = await auditoriaService.getBitacora(currentFilters);
-      setEntries(data.results);
-      setCount(data.count);
-      setTotal(data.count);
+      setEntries(data.results ?? []);
+      setCount(data.count ?? 0);
+      setTotal(data.count ?? 0);
     } catch (err) {
       console.error(err);
       setError('Error al cargar la bitácora de auditoría.');
+      setEntries([]);
     } finally {
       setLoading(false);
     }

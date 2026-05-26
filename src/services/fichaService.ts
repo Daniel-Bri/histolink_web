@@ -30,4 +30,7 @@ export const fichaService = {
 
   cambiarEstado: (fichaId: number, estado: string) =>
     api.patch<FichaBrief>(`fichas/${fichaId}/cambiar-estado/`, { estado }),
+
+  derivar: (fichaId: number, especialidadId: number) =>
+    api.post<FichaBrief>(`fichas/${fichaId}/derivar/`, { especialidad_id: especialidadId }),
 }

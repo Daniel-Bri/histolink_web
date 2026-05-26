@@ -135,6 +135,12 @@ function Icon({ name, size = 15 }: { name: string; size?: number }) {
         <polyline points="10 3 5 8 10 13" />
       </svg>
     ),
+    'check-square': (
+      <svg viewBox="0 0 16 16" style={s} {...p}>
+        <polyline points="3 8 6 11 13 4" />
+        <rect x="1" y="1" width="14" height="14" rx="2" />
+      </svg>
+    ),
   }
 
   return icons[name as keyof typeof icons] ?? null
@@ -167,10 +173,12 @@ const NAV: NavSection[] = [
     title: 'Atención Clínica',
     items: [
       { label: 'Nueva Consulta SOAP', path: '/consulta', icon: 'clipboard', roles: ['Médico', 'Director', 'ADMIN', 'Admin'] },
+      { label: 'Fichas del Día',     path: '/fichas/dia',      icon: 'clipboard', roles: ['Médico', 'Enfermera', 'Administrativo', 'Director'] },
       { label: 'Historial Clínico', icon: 'file', soon: true },
       { label: 'Documentos', icon: 'file', soon: true },
       { label: 'Agenda', icon: 'calendar', soon: true },
       { label: 'Apertura de ficha', path: '/fichas/cola-dia', icon: 'clipboard', roles: ['Administrativo', 'Director'] },
+      { label: 'Consentimientos',   path: '/consentimientos', icon: 'check-square', roles: ['Médico', 'Enfermera', 'Administrativo', 'Director', 'Paciente'] },
       { label: 'Urgencias',          path: '/urgencias',                   icon: 'activity',  roles: ['Médico', 'Enfermera', 'Administrativo', 'Director'] },
       { label: 'Solicitar estudio',  path: '/estudios/solicitud',          icon: 'clipboard', roles: ['Médico', 'Administrativo', 'Director'] },
       { label: 'Cola laboratorio',   path: '/estudios/cola-laboratorio',   icon: 'flask',     roles: ['Laboratorio', 'Administrativo', 'Director'] },
@@ -189,8 +197,8 @@ const NAV: NavSection[] = [
   {
     title: 'Seguridad y Admin',
     items: [
-      { label: 'Auditoría',       path: '/auditoria/bitacora', icon: 'shield',   roles: ['Auditor', 'Administrativo', 'Director'] },
-      { label: 'Backup & Restore', path: '/configuracion',     icon: 'settings', roles: ['Administrativo', 'Director'] },
+      { label: 'Auditoría',      path: '/auditoria/bitacora', icon: 'shield',   roles: ['Auditor', 'Administrativo', 'Director'] },
+      { label: 'Configuración',  path: '/configuracion',      icon: 'settings', roles: ['Administrativo', 'Director'] },
     ],
   },
   {
@@ -208,6 +216,7 @@ const ROL_COLORS: Record<string, { bg: string; text: string }> = {
   'Médico':         { bg: 'rgba(59,130,246,0.18)',  text: '#93C5FD' },
   'Enfermera':      { bg: 'rgba(16,185,129,0.18)',  text: '#6EE7B7' },
   'Administrativo': { bg: 'rgba(245,158,11,0.18)',  text: '#FCD34D' },
+  'Administrador':  { bg: 'rgba(20,184,166,0.18)',   text: '#5EEAD4' },
   'Auditor':        { bg: 'rgba(139,92,246,0.18)',  text: '#C4B5FD' },
   'Director':       { bg: 'rgba(236,72,153,0.18)',  text: '#F9A8D4' },
   'Laboratorio':    { bg: 'rgba(6,182,212,0.18)',   text: '#67E8F9' },

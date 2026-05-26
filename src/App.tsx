@@ -28,10 +28,12 @@ import TenantDetalle from './pages/AdminTenants/TenantDetalle'
 import UsuariosPorClinica from './pages/AdminTenants/UsuariosPorClinica'
 import Bitacora from './pages/Auditoria/Bitacora'
 import ConsultaSOAP from './pages/consulta/ConsultaSOAP'
-import './pages/Estudios.css'
+import FichasDelDia from './pages/FichasDelDia'
+import Consentimientos from './pages/Consentimientos'
 import IdentidadBlockchain from './pages/IdentidadBlockchain'
 import RiesgosClinicosPanel from './pages/RiesgosClinicosPanel'
 import RiesgosGlobal from './pages/RiesgosGlobal'
+import './pages/Estudios.css'
 
 export default function App() {
   return (
@@ -62,6 +64,8 @@ export default function App() {
           <Route path="/fichas/cola-dia"             element={<AperturaFichaColaDia />} />
           <Route path="/consulta"                    element={<ConsultaSOAP />} />
           <Route path="/consulta/:id"                element={<ConsultaSOAP />} />
+          <Route path="/fichas/dia"                  element={<FichasDelDia />} />
+          <Route path="/consentimientos"             element={<Consentimientos />} />
           <Route path="/historial"  element={<EnConstruccion titulo="Historial Clínico" />} />
           <Route path="/documentos" element={<EnConstruccion titulo="Documentos" />} />
           <Route path="/agenda"     element={<EnConstruccion titulo="Agenda" />} />
