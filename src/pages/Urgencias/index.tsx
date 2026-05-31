@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fichaService } from '../../services/fichaService'
 import { parseDrfErrorResponse } from '../../services/pacienteService'
@@ -154,6 +154,8 @@ export default function UrgenciasPage() {
   const [searchResults, setSearchResults] = useState<Paciente[]>([])
   const [searching, setSearching]   = useState(false)
   const [searchError, setSearchError] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [creatingFicha, setCreatingFicha] = useState<number | null>(null)
   const [fichaDetalle, setFichaDetalle]   = useState<FichaBrief | null>(null)
 
@@ -175,15 +177,14 @@ export default function UrgenciasPage() {
 
   useEffect(() => { void loadFichas() }, [loadFichas])
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!search.trim()) return
+  const handleSearch = useCallback(async (query: string) => {
+    if (!query.trim()) { setSearchResults([]); setSearchError(''); return }
     setSearching(true)
     setSearchError('')
     setSearchResults([])
     try {
       const res = await api.get<{ results: Paciente[] }>('pacientes/pacientes/', {
-        params: { search: search.trim(), page_size: 8 },
+        params: { search: query.trim(), page_size: 8 },
       })
       setSearchResults(res.data.results ?? [])
       if ((res.data.results ?? []).length === 0) setSearchError('No se encontraron pacientes.')
@@ -192,7 +193,30 @@ export default function UrgenciasPage() {
     } finally {
       setSearching(false)
     }
-  }
+  }, [])
+
+  // Búsqueda automática con debounce 400ms al escribir
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => { void handleSearch(search) }, 400)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [search, handleSearch])
+
+  // Ctrl+F → enfocar buscador de pacientes | Escape → limpiar
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault()
+        searchRef.current?.focus()
+      }
+      if (e.key === 'Escape' && search) {
+        setSearch('')
+        setSearchResults([])
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [search])
 
   const handleCrearFicha = async (pacienteId: number) => {
     setCreatingFicha(pacienteId)
@@ -410,11 +434,13 @@ export default function UrgenciasPage() {
           </div>
 
           <div style={{ padding: '16px' }}>
-            <form onSubmit={e => void handleSearch(e)} style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
               <input
+                ref={searchRef}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="CI o apellido..."
+                onKeyDown={e => e.key === 'Escape' && (setSearch(''), setSearchResults([]))}
+                placeholder="CI o apellido... (Ctrl+F)"
                 style={{
                   flex: 1, padding: '8px 12px',
                   border: '1px solid #B3D4FF', borderRadius: '8px',
@@ -422,7 +448,8 @@ export default function UrgenciasPage() {
                 }}
               />
               <button
-                type="submit"
+                type="button"
+                onClick={() => void handleSearch(search)}
                 disabled={searching}
                 style={{
                   padding: '8px 14px', border: 'none',
@@ -433,7 +460,7 @@ export default function UrgenciasPage() {
               >
                 {searching ? '...' : 'Buscar'}
               </button>
-            </form>
+            </div>
 
             {searchError && (
               <p style={{ color: '#DC2626', fontSize: '12px', margin: '0 0 10px' }}>{searchError}</p>

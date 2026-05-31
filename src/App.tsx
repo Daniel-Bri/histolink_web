@@ -63,6 +63,7 @@ export default function App() {
           <Route path="/urgencias/:fichaId/triaje"  element={<TriajeForm />} />
           <Route path="/fichas/cola-dia"             element={<AperturaFichaColaDia />} />
           <Route path="/consulta"                    element={<ConsultaSOAP />} />
+          <Route path="/consulta/ficha/:fichaId"     element={<ConsultaSOAP />} />
           <Route path="/consulta/:id"                element={<ConsultaSOAP />} />
           <Route path="/fichas/dia"                  element={<FichasDelDia />} />
           <Route path="/consentimientos"             element={<Consentimientos />} />

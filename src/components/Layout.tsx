@@ -19,7 +19,7 @@ export function getPacientesRecientes(): PacienteReciente[] {
 export function registrarPacienteReciente(p: PacienteReciente) {
   const lista = getPacientesRecientes().filter(x => x.id !== p.id)
   lista.unshift(p)
-  sessionStorage.setItem('pacientes_recientes', JSON.stringify(lista.slice(0, 5)))
+  sessionStorage.setItem('pacientes_recientes', JSON.stringify(lista.slice(0, 2)))
   window.dispatchEvent(new Event('pacientes-recientes-updated'))
 }
 
@@ -172,25 +172,20 @@ const NAV: NavSection[] = [
   {
     title: 'Atención Clínica',
     items: [
-      { label: 'Nueva Consulta SOAP', path: '/consulta', icon: 'clipboard', roles: ['Médico', 'Director', 'ADMIN', 'Admin'] },
-      { label: 'Fichas del Día',     path: '/fichas/dia',      icon: 'clipboard', roles: ['Médico', 'Enfermera', 'Administrativo', 'Director'] },
-      { label: 'Historial Clínico', icon: 'file', soon: true },
-      { label: 'Documentos', icon: 'file', soon: true },
-      { label: 'Agenda', icon: 'calendar', soon: true },
-      { label: 'Apertura de ficha', path: '/fichas/cola-dia', icon: 'clipboard', roles: ['Administrativo', 'Director'] },
-      { label: 'Consentimientos',   path: '/consentimientos', icon: 'check-square', roles: ['Médico', 'Enfermera', 'Administrativo', 'Director', 'Paciente'] },
-      { label: 'Urgencias',          path: '/urgencias',                   icon: 'activity',  roles: ['Médico', 'Enfermera', 'Administrativo', 'Director'] },
-      { label: 'Solicitar estudio',  path: '/estudios/solicitud',          icon: 'clipboard', roles: ['Médico', 'Administrativo', 'Director'] },
-      { label: 'Cola laboratorio',   path: '/estudios/cola-laboratorio',   icon: 'flask',     roles: ['Laboratorio', 'Administrativo', 'Director'] },
-      { label: 'Reportes producción', path: '/reportes/produccion',        icon: 'activity',  roles: ['ADMIN', 'Admin', 'Administrativo', 'Auditor', 'Médico', 'Director'] },
-      { label: 'Recetas',           path: '/recetas',    icon: 'clipboard', roles: ['Médico', 'Farmacia', 'Administrativo', 'Director'] },
+      { label: 'Nueva Consulta SOAP', path: '/consulta',                   icon: 'clipboard',    roles: ['Médico', 'Director', 'ADMIN', 'Admin'] },
+      { label: 'Fichas del Día',      path: '/fichas/dia',                  icon: 'clipboard',    roles: ['Médico', 'Enfermera', 'Administrativo', 'Director'] },
+      { label: 'Apertura de ficha',   path: '/fichas/cola-dia',             icon: 'clipboard',    roles: ['Administrativo', 'Director'] },
+      { label: 'Consentimientos',     path: '/consentimientos',             icon: 'check-square', roles: ['Médico', 'Enfermera', 'Administrativo', 'Director', 'Paciente'] },
+      { label: 'Urgencias',           path: '/urgencias',                   icon: 'activity',     roles: ['Médico', 'Enfermera', 'Administrativo', 'Director'] },
+      { label: 'Solicitar estudio',   path: '/estudios/solicitud',          icon: 'clipboard',    roles: ['Médico', 'Administrativo', 'Director'] },
+      { label: 'Cola laboratorio',    path: '/estudios/cola-laboratorio',   icon: 'flask',        roles: ['Laboratorio', 'Administrativo', 'Director'] },
+      { label: 'Reportes producción', path: '/reportes/produccion',         icon: 'activity',     roles: ['ADMIN', 'Admin', 'Administrativo', 'Auditor', 'Médico', 'Director'] },
+      { label: 'Recetas',             path: '/recetas',                     icon: 'clipboard',    roles: ['Médico', 'Farmacia', 'Administrativo', 'Director'] },
     ],
   },
   {
     title: 'IA + Blockchain',
     items: [
-      { label: 'Clasificación IA', icon: 'cpu',      soon: true },
-      { label: 'Riesgo Clínico',   icon: 'activity', soon: true },
       { label: 'Identidad Blockchain', path: '/blockchain/identidad', icon: 'link', roles: ['Administrativo', 'Director'] },
     ],
   },
@@ -237,6 +232,16 @@ export default function Layout() {
   const [hovered, setHovered]     = useState<string | null>(null)
   const [collapsed, setCollapsed] = useState(false)
   const [recientes, setRecientes] = useState<PacienteReciente[]>(getPacientesRecientes)
+  const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>({
+    'Gestión de Usuarios': false,
+    'Atención Clínica':    false,
+    'IA + Blockchain':     false,
+    'Seguridad y Admin':   false,
+    'Superadmin':          false,
+  })
+
+  const toggleSection = (title: string) =>
+    setSectionsOpen(prev => ({ ...prev, [title]: !prev[title] }))
 
   // Refrescar lista cuando se registra un paciente reciente desde cualquier pantalla
   useEffect(() => {
@@ -395,20 +400,39 @@ export default function Layout() {
 
         {/* Navegación */}
         <nav style={{ flex: 1, padding: '6px 0 12px', overflowY: 'auto' }}>
-          {NAV.filter(section => !section.staffOnly || isSuperadmin).map(section => (
+          {NAV.filter(section => !section.staffOnly || isSuperadmin).map(section => {
+            const isOpen = sectionsOpen[section.title] !== false
+            return (
             <div key={section.title} style={{ marginBottom: '2px' }}>
 
-              {/* Encabezado de sección */}
-              <p style={{
-                color: section.staffOnly ? 'rgba(251,191,36,0.75)' : 'rgba(255,255,255,0.65)',
-                fontSize: '10px', fontWeight: 700,
-                letterSpacing: '0.08em', textTransform: 'uppercase',
-                padding: '14px 18px 5px', margin: 0,
-              }}>
-                {section.title}
-              </p>
+              {/* Encabezado de sección — colapsable */}
+              <button
+                onClick={() => toggleSection(section.title)}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  width: 'calc(100% - 16px)', padding: '10px 14px', margin: '4px 8px 2px', border: 'none',
+                  background: section.staffOnly
+                    ? 'rgba(251,191,36,0.18)'
+                    : 'rgba(0,168,150,0.18)',
+                  borderRadius: '8px',
+                  borderLeft: `3px solid ${section.staffOnly ? 'rgba(251,191,36,0.6)' : 'rgba(0,168,150,0.7)'}`,
+                  cursor: 'pointer',
+                  color: section.staffOnly ? '#FDE68A' : '#6EE7DF',
+                }}
+              >
+                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  {section.title}
+                </span>
+                <svg
+                  viewBox="0 0 16 16" width="11" height="11"
+                  fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                  style={{ transition: 'transform 0.2s', transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', flexShrink: 0 }}
+                >
+                  <polyline points="3 6 8 11 13 6" />
+                </svg>
+              </button>
 
-              {section.items.map(item => {
+              {isOpen && section.items.map(item => {
                 if (item.staffOnly && !isSuperadmin) return null
                 const hasAccess = !item.roles || item.roles.some(r => user?.groups?.includes(r))
                 const disabled  = item.soon || !hasAccess
@@ -466,7 +490,8 @@ export default function Layout() {
                 )
               })}
             </div>
-          ))}
+            )
+          })}
         </nav>
 
         {/* Pacientes recientes */}

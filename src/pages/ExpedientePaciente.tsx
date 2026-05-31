@@ -46,6 +46,15 @@ interface Consulta {
   plan_tratamiento?: string
 }
 
+interface VerificacionResult {
+  estado: 'VÁLIDO' | 'ALTERADO' | 'SIN_FIRMA'
+  integro: boolean | null
+  firmado_por: string | null
+  firmado_en: string | null
+  did_firmante: string | null
+  bloque_numero: number | null
+}
+
 interface ExpedienteData {
   id: number
   ci: string
@@ -134,6 +143,20 @@ export default function ExpedientePaciente() {
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState('')
   const [showBreakGlass, setShowBreakGlass] = useState(false)
+  const [verificaciones, setVerificaciones] = useState<Record<number, VerificacionResult | 'loading'>>({})
+
+  const handleVerificar = async (consultaId: number) => {
+    setVerificaciones(prev => ({ ...prev, [consultaId]: 'loading' }))
+    try {
+      const r = await api.get<VerificacionResult>(`blockchain/documento/${consultaId}/verificar/`)
+      setVerificaciones(prev => ({ ...prev, [consultaId]: r.data }))
+    } catch {
+      setVerificaciones(prev => ({
+        ...prev,
+        [consultaId]: { estado: 'ALTERADO', integro: false, firmado_por: null, firmado_en: null, did_firmante: null, bloque_numero: null },
+      }))
+    }
+  }
   const [breakGlassSolicitud, setBreakGlassSolicitud] = useState<BreakGlassSolicitudItem | null>(null)
   const [breakGlassPacienteNombre, setBreakGlassPacienteNombre] = useState('')
   const forceBreakGlassView = searchParams.get('vista') === 'break-glass'
@@ -422,6 +445,8 @@ export default function ExpedientePaciente() {
                 {data.consultas.map(c => {
                   const est = c.estado ?? ''
                   const estStyle = ESTADO_STYLE[est] ?? { bg: '#F5F5F5', color: '#555' }
+                  const verif = verificaciones[c.id]
+                  const esFirmada = est === 'FIRMADA'
                   return (
                     <div key={c.id} style={{
                       background: 'white', border: '1px solid #E7EEFF',
@@ -464,6 +489,74 @@ export default function ExpedientePaciente() {
                           <div style={{ gridColumn: '1 / -1' }}>
                             <p style={{ fontSize: '11px', fontWeight: 700, color: '#0003B8', opacity: 0.55, margin: '0 0 3px', textTransform: 'uppercase' }}>Plan de tratamiento</p>
                             <p style={{ fontSize: '13px', color: '#333', margin: 0, whiteSpace: 'pre-line' }}>{c.plan_tratamiento}</p>
+                          </div>
+                        )}
+
+                        {/* ── Verificación de integridad blockchain ── */}
+                        {esFirmada && (
+                          <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #F0F6FF', paddingTop: '10px', marginTop: '4px' }}>
+                            {!verif && (
+                              <button
+                                onClick={() => handleVerificar(c.id)}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '6px',
+                                  background: 'transparent', border: '1px solid #0003B8',
+                                  color: '#0003B8', borderRadius: '8px',
+                                  padding: '5px 14px', fontSize: '12px', fontWeight: 600,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                🔒 Verificar integridad
+                              </button>
+                            )}
+                            {verif === 'loading' && (
+                              <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>⏳ Verificando con blockchain...</p>
+                            )}
+                            {verif && verif !== 'loading' && (
+                              <div style={{
+                                display: 'flex', flexDirection: 'column', gap: '4px',
+                                background: verif.estado === 'VÁLIDO' ? '#F0FDF4' : '#FFF5F5',
+                                border: `1px solid ${verif.estado === 'VÁLIDO' ? '#86EFAC' : '#FCA5A5'}`,
+                                borderRadius: '8px', padding: '10px 14px',
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontSize: '18px' }}>
+                                    {verif.estado === 'VÁLIDO' ? '✅' : '🚨'}
+                                  </span>
+                                  <span style={{
+                                    fontSize: '13px', fontWeight: 700,
+                                    color: verif.estado === 'VÁLIDO' ? '#15803D' : '#DC2626',
+                                  }}>
+                                    {verif.estado === 'VÁLIDO'
+                                      ? 'Documento Íntegro y Auténtico'
+                                      : 'Documento Manipulado — Alerta'}
+                                  </span>
+                                  <button
+                                    onClick={() => handleVerificar(c.id)}
+                                    title="Reverificar"
+                                    style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '14px', opacity: 0.5 }}
+                                  >
+                                    🔄
+                                  </button>
+                                </div>
+                                {verif.firmado_por && (
+                                  <p style={{ fontSize: '11px', color: '#555', margin: 0 }}>
+                                    Firmado por <strong>{verif.firmado_por}</strong>
+                                    {verif.firmado_en && ` · ${fechaHora(verif.firmado_en)}`}
+                                  </p>
+                                )}
+                                {verif.did_firmante && (
+                                  <p style={{ fontSize: '10px', color: '#888', margin: 0, fontFamily: 'monospace' }}>
+                                    DID: {verif.did_firmante}
+                                  </p>
+                                )}
+                                {verif.bloque_numero !== null && (
+                                  <p style={{ fontSize: '10px', color: '#888', margin: 0 }}>
+                                    Bloque #{verif.bloque_numero}
+                                  </p>
+                                )}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

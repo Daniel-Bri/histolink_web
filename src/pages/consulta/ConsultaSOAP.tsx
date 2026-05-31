@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
+import {
   consultaService
 } from '../../services/consultaService';
+import { fichaService } from '../../services/fichaService';
 import type {
   ConsultaMedica,
   DiagnosticoCIE10,
@@ -125,38 +126,11 @@ const inputInline: React.CSSProperties = {
   outline: 'none',
 };
 
-interface DetalleReceta {
-  medicamento: string;
-  concentracion: string;
-  forma_farmaceutica: string;
-  via_administracion: string;
-  dosis: string;
-  frecuencia: string;
-  duracion: string;
-  cantidad_total: string;
-  instrucciones: string;
-  orden: number;
-}
-
-const TIPOS_ESTUDIO = [
-  { value: 'LAB', label: 'Laboratorio' },
-  { value: 'RX', label: 'Radiografía' },
-  { value: 'ECO', label: 'Ecografía' },
-  { value: 'TC', label: 'Tomografía Computarizada' },
-  { value: 'RMN', label: 'Resonancia Magnética' },
-  { value: 'ECG', label: 'Electrocardiograma' },
-  { value: 'END', label: 'Endoscopia' },
-  { value: 'OTRO', label: 'Otro' },
-];
-
-const recetaVacio = (): DetalleReceta => ({
-  medicamento: '', concentracion: '', forma_farmaceutica: '',
-  via_administracion: '', dosis: '', frecuencia: '', duracion: '',
-  cantidad_total: '', instrucciones: '', orden: 0,
-});
 
 export default function ConsultaSOAP() {
-  const { id } = useParams<{ id: string }>();
+  const { id, fichaId } = useParams<{ id?: string; fichaId?: string }>();
+  const routeFichaId = fichaId ?? null;   // /consulta/ficha/:fichaId
+  const routeConsultaId = fichaId ? null : id ?? null;  // /consulta/:id
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   
@@ -164,12 +138,7 @@ export default function ConsultaSOAP() {
   const [triajeData, setTriajeData] = useState<any>(null);
   const [queue, setQueue] = useState<FichaQueue[]>([]);
   const [historial, setHistorial] = useState<ConsultaMedica[]>([]);
-  // Nuevo estado para persistencia local de demos
-  const [demoHistorial, setDemoHistorial] = useState<ConsultaMedica[]>(() => {
-    const saved = localStorage.getItem('histolink_demo_history');
-    return saved ? JSON.parse(saved) : [];
-  });
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [, setError] = useState<string | null>(null);
@@ -184,19 +153,6 @@ export default function ConsultaSOAP() {
   const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
 
-  // Acciones clínicas inline
-  const [activePanel, setActivePanel] = useState<'receta' | 'estudio' | null>(null);
-  const [recetaDetalles, setRecetaDetalles] = useState<DetalleReceta[]>([recetaVacio()]);
-  const [recetaObs, setRecetaObs] = useState('');
-  const [guardandoReceta, setGuardandoReceta] = useState(false);
-  const [recetaMsg, setRecetaMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [tipoEstudio, setTipoEstudio] = useState('LAB');
-  const [descEstudio, setDescEstudio] = useState('');
-  const [indicEstudio, setIndicEstudio] = useState('');
-  const [urgenteEstudio, setUrgenteEstudio] = useState(false);
-  const [motivoUrgEstudio, setMotivoUrgEstudio] = useState('');
-  const [guardandoEstudio, setGuardandoEstudio] = useState(false);
-  const [estudioMsg, setEstudioMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const isEditable = consulta?.estado === 'BORRADOR';
   const isCompletada = consulta?.estado === 'COMPLETADA';
@@ -207,96 +163,44 @@ export default function ConsultaSOAP() {
     setLoading(true);
     setError(null);
     try {
-      if (!id) {
-        if (!isAuthenticated) {
-          setQueue([]);
-          setHistorial([]);
-          setLoading(false);
-          return;
-        }
+      // ── Panel principal (sin ID) ──────────────────────────────────────────
+      if (!routeFichaId && !routeConsultaId) {
         const [queueRes, historyRes] = await Promise.all([
-          consultaService.getQueue().catch(() => ({ data: { results: [] } })),
-          consultaService.getAll().catch(() => ({ data: { results: [] } }))
+          consultaService.getQueue().catch(() => ({ data: { results: [] as FichaQueue[] } })),
+          consultaService.getAll().catch(() => ({ data: { results: [] as ConsultaMedica[] } }))
         ]);
         setQueue(queueRes.data.results || []);
-        setHistorial(historyRes.data.results || []);
+        const raw = historyRes.data as any;
+        setHistorial(Array.isArray(raw) ? raw : (raw.results || []));
+        return;
+      }
+
+      let consultaData: ConsultaMedica | null = null;
+
+      if (routeFichaId) {
+        // ── Ruta /consulta/ficha/:fichaId — siempre busca por ficha ──────────
+        const fichaNum = Number(routeFichaId);
+        const existing = await consultaService.getByFicha(fichaNum);
+        const results = existing.data.results ?? [];
+        if (results.length > 0) {
+          consultaData = results.find(c => c.estado === 'BORRADOR') ?? results[0];
+        } else {
+          const created = await consultaService.create(fichaNum);
+          consultaData = created.data;
+        }
       } else {
-        // MODO DEMO PARA IDS 101, 102, 103 (Los del botón generar)
-        if (['101', '102', '103'].includes(id)) {
-          // Verificar si ya está en el historial local
-          const consultaGuardada = demoHistorial.find(c => c.id === Number(id));
-          if (consultaGuardada) {
-            setConsulta(consultaGuardada);
-            setLoading(false);
-            return;
-          }
+        // ── Ruta /consulta/:id — siempre es ID de consulta ───────────────────
+        const res = await consultaService.getById(Number(routeConsultaId));
+        consultaData = res.data;
+      }
 
-          const names: any = { '101': 'Juan Pérez Test', '102': 'María García López', '103': 'Ricardo Suárez' };
-          setConsulta({
-            id: Number(id),
-            ficha: Number(id),
-            paciente_nombre: names[id],
-            ficha_correlativo: `FIC-2026-00${id.slice(-1)}`,
-            medico: 1,
-            triaje: Number(id),
-            estado: 'BORRADOR',
-            motivo_consulta: '',
-            historia_enfermedad_actual: '',
-            examen_fisico: '',
-            impresion_diagnostica: '',
-            codigo_cie10_principal: '',
-            codigo_cie10_secundario: '',
-            descripcion_cie10: '',
-            plan_tratamiento: '',
-            indicaciones_alta: '',
-            creado_en: new Date().toISOString(),
-            actualizado_en: new Date().toISOString()
-          });
-          
-          // Datos de triaje simulados para el demo
-          setTriajeData({
-            paciente_edad: id === '101' ? 34 : id === '102' ? 28 : 45,
-            paciente_genero: id === '102' ? 'F' : 'M',
-            frecuencia_cardiaca: 80,
-            presion_arterial_sistolica: 120,
-            presion_arterial_diastolica: 80,
-            temperatura: 36.8,
-            saturacion_oxigeno: 98,
-            frecuencia_respiratoria: 18,
-            glasgow: 15
-          });
-          setLoading(false);
-          return;
-        }
+      setConsulta(consultaData);
 
-        let consultaData: ConsultaMedica | null = null;
+      if (consultaData?.triaje) {
         try {
-          const res = await consultaService.getById(Number(id));
-          consultaData = res.data;
-        } catch (err: any) {
-          if (err.response?.status === 404) {
-            // ID puede ser un ID de ficha — buscar consulta existente o crear una nueva
-            const existing = await consultaService.getByFicha(Number(id));
-            const results = existing.data.results ?? [];
-            if (results.length > 0) {
-              consultaData = results.find(c => c.estado === 'BORRADOR') ?? results[0];
-            } else {
-              const created = await consultaService.create(Number(id));
-              consultaData = created.data;
-            }
-          } else {
-            throw err;
-          }
-        }
-        setConsulta(consultaData);
-
-        // Cargar datos de triaje si existe
-        if (consultaData?.triaje) {
-          try {
-            const tRes = await api.get(`triaje/${consultaData.triaje}/`);
-            setTriajeData(tRes.data);
-          } catch (e) { console.error("No triaje found"); }
-        }
+          const tRes = await api.get(`triaje/${consultaData.triaje}/`);
+          setTriajeData(tRes.data);
+        } catch { /* triaje opcional */ }
       }
     } catch (err: any) {
       console.error(err);
@@ -304,7 +208,7 @@ export default function ConsultaSOAP() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [routeFichaId, routeConsultaId]);
 
   useEffect(() => {
     fetchData();
@@ -347,19 +251,13 @@ export default function ConsultaSOAP() {
 
   const handleSave = async (silent = false) => {
     if (!consulta || saving || isReadOnly) return;
-    
-    // MODO DEMO: No llamar al backend si es un ID de prueba
-    if ([101, 102, 103].includes(consulta.id)) {
-      if (!silent) alert('MODO PRUEBA: Borrador guardado exitosamente (Simulado).');
-      return;
-    }
-
     try {
       if (!silent) setSaving(true);
       await consultaService.update(consulta.id, consulta);
       setIsDirty(false);
       if (!silent) alert('Borrador guardado exitosamente.');
-    } catch (err) { if (!silent) alert('Error al guardar.'); } finally { if (!silent) setSaving(false); }
+    } catch { if (!silent) alert('Error al guardar.'); }
+    finally { if (!silent) setSaving(false); }
   };
 
   // Mantener ref actualizada para el atajo de teclado
@@ -387,218 +285,171 @@ export default function ConsultaSOAP() {
 
   const handleFirmar = async () => {
     if (!consulta || isSigning || isFirmada) return;
-    
-    // MODO DEMO: No llamar al backend si es un ID de prueba
-    if ([101, 102, 103].includes(consulta.id)) {
-      setIsSigning(true);
-      setTimeout(() => {
-        const ahora = new Date().toISOString();
-        const nuevaConsulta: ConsultaMedica = { 
-          ...consulta, 
-          estado: 'FIRMADA',
-          hash_documento: 'd2a6e3f8b1c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0',
-          firmada_por: 999,
-          firmada_por_nombre: 'Médico de Prueba',
-          firmada_en: ahora
-        };
-        setConsulta(nuevaConsulta);
-        
-        // Guardar en el historial demo local
-        const nuevoHistorial = [nuevaConsulta, ...demoHistorial.filter(c => c.id !== consulta.id)];
-        setDemoHistorial(nuevoHistorial);
-        localStorage.setItem('histolink_demo_history', JSON.stringify(nuevoHistorial));
-
-        alert('MODO PRUEBA: Consulta firmada digitalmente con éxito (Simulado).');
-        setIsSigning(false);
-        setIsFirmaModalOpen(false);
-      }, 1500);
-      return;
-    }
-
     try {
       setIsSigning(true);
       const res = await consultaService.firmar(consulta.id);
       setConsulta(res.data);
       alert('Consulta firmada digitalmente con éxito.');
       setIsFirmaModalOpen(false);
-    } catch (err) { 
-      alert('Error al firmar la consulta.'); 
-    } finally { 
-      setIsSigning(false); 
+    } catch (err: any) {
+      const msg = err.response?.data?.error ?? err.response?.data?.detail ?? 'Error al firmar la consulta.';
+      alert(msg);
+    } finally {
+      setIsSigning(false);
     }
   };
 
-  const handleCompletar = async (nuevoEstado: 'COMPLETADA' | 'FIRMADA' = 'COMPLETADA') => {
+  const handleCompletar = async () => {
     if (!consulta || isReadOnly) return;
-    
-    // Si se intenta firmar desde aquí, redirigir a handleFirmar
-    if (nuevoEstado === 'FIRMADA') {
-      handleFirmar();
+    const camposVacios: string[] = [];
+    if (!consulta.motivo_consulta?.trim()) camposVacios.push('Motivo de consulta');
+    if (!consulta.historia_enfermedad_actual?.trim()) camposVacios.push('Historia de la enfermedad actual');
+    if (!consulta.impresion_diagnostica?.trim()) camposVacios.push('Impresión diagnóstica');
+    if (!consulta.codigo_cie10_principal?.trim()) camposVacios.push('Código CIE-10 principal');
+    if (camposVacios.length > 0) {
+      alert(`Completa los siguientes campos obligatorios antes de finalizar:\n\n• ${camposVacios.join('\n• ')}`);
       return;
     }
-    if (!consulta.motivo_consulta || !consulta.codigo_cie10_principal) {
-      alert('El diagnóstico CIE-10 es obligatorio.');
-      return;
-    }
-    if (!window.confirm(`¿Marcar como ${nuevoEstado}?`)) return;
-
-    // MODO DEMO: No llamar al backend si es un ID de prueba
-    if ([101, 102, 103].includes(consulta.id)) {
-      setSaving(true);
-      setTimeout(() => {
-        const nuevaConsulta = { ...consulta, estado: nuevoEstado };
-        setConsulta(nuevaConsulta);
-        
-        // Guardar en el historial demo local
-        const nuevoHistorial = [nuevaConsulta, ...demoHistorial.filter(c => c.id !== consulta.id)];
-        setDemoHistorial(nuevoHistorial);
-        localStorage.setItem('histolink_demo_history', JSON.stringify(nuevoHistorial));
-
-        alert(`MODO PRUEBA: Consulta ${nuevoEstado.toLowerCase()} con éxito (Simulado).`);
-        setSaving(false);
-        navigate('/consulta'); // Redirigir al panel para ver el cambio
-      }, 800);
-      return;
-    }
-
+    if (!window.confirm('¿Finalizar la consulta? Podrás firmarla digitalmente a continuación.')) return;
     try {
       setSaving(true);
-      await consultaService.update(consulta.id, { ...consulta, estado: nuevoEstado });
-      alert(`Consulta ${nuevoEstado.toLowerCase()} con éxito.`);
-      navigate('/consulta'); // Redirigir al panel para ver el cambio (HU013)
-    } catch (err) { alert('Error al actualizar estado.'); } finally { setSaving(false); }
-  };
-
-  const handleGuardarReceta = async () => {
-    if (!consulta) return;
-    const detallesValidos = recetaDetalles.filter(d => d.medicamento.trim());
-    if (!detallesValidos.length) {
-      setRecetaMsg({ ok: false, text: 'Ingrese al menos un medicamento.' });
-      return;
-    }
-    try {
-      setGuardandoReceta(true);
-      setRecetaMsg(null);
-      await api.post('clinica/recetas/', {
-        consulta: consulta.id,
-        observaciones: recetaObs,
-        detalles: detallesValidos.map((d, i) => ({ ...d, orden: i + 1 })),
-      });
-      setRecetaMsg({ ok: true, text: 'Receta emitida correctamente.' });
-      setRecetaDetalles([recetaVacio()]);
-      setRecetaObs('');
-    } catch {
-      setRecetaMsg({ ok: false, text: 'Error al emitir la receta. Verifique que la consulta esté completada.' });
+      // Primero guarda el borrador con los datos actuales
+      await consultaService.update(consulta.id, consulta);
+      // Luego usa el endpoint completar (valida campos obligatorios en el backend)
+      const res = await consultaService.completar(consulta.id);
+      setConsulta(res.data);
+      setIsDirty(false);
+    } catch (err: any) {
+      const campos = err.response?.data?.campos;
+      if (campos) {
+        alert(`Faltan campos obligatorios: ${campos.join(', ')}`);
+      } else {
+        alert(err.response?.data?.error ?? 'Error al finalizar la consulta.');
+      }
     } finally {
-      setGuardandoReceta(false);
+      setSaving(false);
     }
   };
 
-  const handleGuardarEstudio = async () => {
-    if (!consulta) return;
-    if (!descEstudio.trim()) {
-      setEstudioMsg({ ok: false, text: 'Ingrese la descripción del estudio.' });
-      return;
-    }
-    try {
-      setGuardandoEstudio(true);
-      setEstudioMsg(null);
-      const payload: Record<string, unknown> = {
-        consulta_id: consulta.id,
-        tipo: tipoEstudio,
-        descripcion: descEstudio,
-        indicacion_clinica: indicEstudio,
-        urgente: urgenteEstudio,
-      };
-      if (urgenteEstudio && motivoUrgEstudio) payload.motivo_urgencia = motivoUrgEstudio;
-      await api.post('ordenes-estudio/', payload);
-      setEstudioMsg({ ok: true, text: 'Orden de estudio creada correctamente.' });
-      setDescEstudio('');
-      setIndicEstudio('');
-      setUrgenteEstudio(false);
-      setMotivoUrgEstudio('');
-    } catch {
-      setEstudioMsg({ ok: false, text: 'Error al crear la orden de estudio.' });
-    } finally {
-      setGuardandoEstudio(false);
-    }
-  };
 
   if (loading) return <LoadingSpinner />;
 
-  if (!id) {
+  if (!routeFichaId && !routeConsultaId) {
     return (
-      <div style={{ padding: '30px', maxWidth: '1200px', margin: '0 auto' }}>
-        <h1 style={{ color: '#0F172A', fontSize: '28px', fontWeight: 800, marginBottom: '24px' }}>Gestión de Consultas — HOAP</h1>
+      <div style={{ padding: '30px' }}>
+        <h1 style={{ color: '#0F172A', fontSize: '28px', fontWeight: 800, marginBottom: '24px' }}>Gestión de Consultas — SOAP</h1>
         
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
           
           {/* Columna: Cola de Atención */}
           <div style={sectionBox('#3B82F6')}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h2 style={labelStyle('#1D4ED8')}>
-                🕒 Pacientes en Espera
-              </h2>
-              <button 
-                onClick={() => {
-                  const demoQueue: FichaQueue[] = [
-                    { id: 101, correlativo: 'FIC-2026-001', paciente_nombre: 'Juan Pérez Test', paciente_edad: 34, paciente_genero: 'M', estado: 'EN_TRIAJE', fecha_apertura: '' },
-                    { id: 102, correlativo: 'FIC-2026-002', paciente_nombre: 'María García López', paciente_edad: 28, paciente_genero: 'F', estado: 'EN_TRIAJE', fecha_apertura: '' },
-                    { id: 103, correlativo: 'FIC-2026-003', paciente_nombre: 'Ricardo Suárez', paciente_edad: 45, paciente_genero: 'M', estado: 'EN_TRIAJE', fecha_apertura: '' }
-                  ];
-                  setQueue(demoQueue);
-                }}
-                style={{ background: '#F0F6FF', color: '#0003B8', border: '1px dashed #0003B8', fontSize: '11px', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+              <h2 style={labelStyle('#1D4ED8')}>🕒 Pacientes en Espera</h2>
+              <button
+                onClick={() => fetchData()}
+                style={{ background: '#F0F6FF', color: '#0003B8', border: '1px solid #B3D4FF', fontSize: '11px', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
               >
-                🧪 Generar Pacientes (Demo)
+                🔄 Actualizar
               </button>
             </div>
-            
+
             {queue.length === 0 ? (
               <div style={{ padding: '20px', textAlign: 'center', color: '#64748B', fontStyle: 'italic' }}>
-                No hay pacientes en espera.
+                No hay fichas activas en este momento.
               </div>
             ) : (
               <div style={{ display: 'grid', gap: '12px' }}>
                 {queue.map(f => (
                   <div key={f.id} style={{ padding: '12px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <div style={{ fontWeight: 700, color: '#1E293B' }}>{f.paciente_nombre}</div>
-                      <div style={{ fontSize: '12px', color: '#64748B' }}>Ficha: {f.correlativo} | {f.paciente_edad} años</div>
+                      <div style={{ fontWeight: 700, color: '#1E293B' }}>{f.paciente.nombre_completo}</div>
+                      <div style={{ fontSize: '12px', color: '#64748B' }}>
+                        Ficha: {f.correlativo} · CI: {f.paciente.ci}
+                        {f.estado === 'ABIERTA' && <span style={{ color: '#F59E0B', fontWeight: 600 }}> · Pendiente triaje</span>}
+                        {f.estado === 'EN_TRIAJE' && <span style={{ color: '#10B981', fontWeight: 600 }}> · Triaje completo</span>}
+                        {f.estado === 'EN_ATENCION' && <span style={{ color: '#3B82F6', fontWeight: 600 }}> · En atención</span>}
+                      </div>
                     </div>
-                    <button onClick={() => navigate(`/consulta/${f.id}`)} style={actionBtn('#0EA5E9')}>Atender</button>
+                    {f.estado === 'ABIERTA' && (
+                      <button
+                        onClick={() => navigate(`/urgencias/${f.id}/triaje`)}
+                        style={actionBtn('#F59E0B')}
+                      >
+                        Ir a triaje
+                      </button>
+                    )}
+                    {(f.estado === 'EN_TRIAJE' || f.estado === 'EN_ATENCION') && (
+                      <button
+                        onClick={async () => {
+                          if (f.estado === 'EN_TRIAJE') {
+                            await fichaService.cambiarEstado(f.id, 'EN_ATENCION').catch(() => {});
+                          }
+                          navigate(`/consulta/ficha/${f.id}`);
+                        }}
+                        style={actionBtn('#0EA5E9')}
+                      >
+                        Atender
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Columna: Historial Reciente */}
+          {/* Columna: Historial de Consultas */}
           <div style={sectionBox('#10B981')}>
-            <h2 style={labelStyle('#047857')}>
-              📁 Panel de Consultas
-            </h2>
-            {historial.length === 0 && demoHistorial.length === 0 ? (
+            <h2 style={labelStyle('#047857')}>📁 Panel de Consultas</h2>
+            {historial.length === 0 ? (
               <div style={{ padding: '20px', textAlign: 'center', color: '#64748B', fontStyle: 'italic' }}>
-                No hay consultas registradas.
+                No hay consultas registradas aún.
               </div>
             ) : (
               <div style={{ display: 'grid', gap: '12px' }}>
-                {[...demoHistorial, ...historial].map(c => (
-                  <div 
-                    key={c.id} 
-                    onClick={() => navigate(`/consulta/${c.id}`)} 
-                    style={{ padding: '12px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0', cursor: 'pointer' }}
+                {historial.map(c => (
+                  <div
+                    key={c.id}
+                    style={{ padding: '12px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0' }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                      <div style={{ fontWeight: 700, color: '#1E293B' }}>{c.paciente_nombre}</div>
-                      <EstadoBadge 
-                        estado={c.estado} 
-                        firmadoPor={c.firmada_por_nombre} 
-                        fechaFirma={c.firmada_en} 
-                      />
+                      <div
+                        style={{ fontWeight: 700, color: '#1E293B', cursor: 'pointer', flex: 1 }}
+                        onClick={() => navigate(`/consulta/${c.id}`)}
+                      >
+                        {c.paciente_nombre}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <EstadoBadge
+                          estado={c.estado}
+                          firmadoPor={c.firmada_por_nombre}
+                          fechaFirma={c.firmada_en}
+                        />
+                        {c.estado === 'BORRADOR' && (
+                          <button
+                            title="Eliminar borrador"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (!window.confirm('¿Eliminar este borrador? Esta acción no se puede deshacer.')) return;
+                              try {
+                                await consultaService.eliminar(c.id);
+                                setHistorial(prev => prev.filter(x => x.id !== c.id));
+                              } catch {
+                                alert('No se pudo eliminar el borrador.');
+                              }
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', fontSize: '16px', padding: '2px 4px', lineHeight: 1 }}
+                          >
+                            🗑
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ fontSize: '12px', color: '#64748B' }}>{c.codigo_cie10_principal || 'Sin Dx'} | {new Date(c.creado_en).toLocaleDateString()}</div>
+                    <div
+                      style={{ fontSize: '12px', color: '#64748B', cursor: 'pointer' }}
+                      onClick={() => navigate(`/consulta/${c.id}`)}
+                    >
+                      {c.codigo_cie10_principal || 'Sin Dx'} · {new Date(c.creado_en).toLocaleDateString()}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -612,7 +463,7 @@ export default function ConsultaSOAP() {
   if (!consulta) return null;
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto', background: '#F0F9FF', minHeight: '100vh' }}>
+    <div style={{ padding: '20px', background: '#F0F9FF', minHeight: '100vh' }}>
       
       {/* HEADER CON DEGRADADO AZUL */}
       <div style={headerBox}>
@@ -649,11 +500,11 @@ export default function ConsultaSOAP() {
           <div style={{ display: 'flex', gap: '15px' }}>
             <div style={{ textAlign: 'center' }}>
               <span style={{ fontSize: '11px', display: 'block', textTransform: 'uppercase', opacity: 0.8 }}>Edad</span>
-              <strong style={{ fontSize: '18px' }}>{triajeData?.paciente_edad || '--'}</strong>
+              <strong style={{ fontSize: '18px' }}>{consulta.paciente_edad ?? '--'}</strong>
             </div>
             <div style={{ textAlign: 'center' }}>
               <span style={{ fontSize: '11px', display: 'block', textTransform: 'uppercase', opacity: 0.8 }}>Sexo</span>
-              <strong style={{ fontSize: '18px' }}>{triajeData?.paciente_genero || '--'}</strong>
+              <strong style={{ fontSize: '18px' }}>{consulta.paciente_genero || '--'}</strong>
             </div>
           </div>
           <EstadoBadge 
@@ -697,7 +548,7 @@ export default function ConsultaSOAP() {
       )}
 
       {/* GRID PRINCIPAL 2 COLUMNAS */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px', minWidth: 0 }}>
         
         {/* COLUMNA IZQUIERDA */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -705,12 +556,25 @@ export default function ConsultaSOAP() {
             <h3 style={labelStyle('#1D4ED8')}>
               <span>📝</span> Subjetivo (S)
             </h3>
-            <textarea 
-              style={textareaStyle}
+            <label style={{ fontSize: '12px', color: '#64748B', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+              Motivo de consulta <span style={{ color: '#EF4444' }}>*</span>
+            </label>
+            <textarea
+              style={{ ...textareaStyle, height: '80px', marginBottom: '12px' }}
               value={consulta.motivo_consulta}
               onChange={e => handleUpdateField('motivo_consulta', e.target.value)}
               disabled={isReadOnly}
-              placeholder="Motivo de consulta y síntomas..."
+              placeholder="Motivo de consulta y síntomas principales..."
+            />
+            <label style={{ fontSize: '12px', color: '#64748B', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+              Historia de la enfermedad actual <span style={{ color: '#EF4444' }}>*</span>
+            </label>
+            <textarea
+              style={{ ...textareaStyle, height: '100px' }}
+              value={consulta.historia_enfermedad_actual}
+              onChange={e => handleUpdateField('historia_enfermedad_actual', e.target.value)}
+              disabled={isReadOnly}
+              placeholder="Relato cronológico: inicio, evolución, síntomas asociados..."
             />
           </div>
 
@@ -720,12 +584,12 @@ export default function ConsultaSOAP() {
             </h3>
             {triajeData && (
               <div style={triajeGrid}>
-                <div>FC: <strong style={{ color: '#111827' }}>{triajeData.frecuencia_cardiaca} lpm</strong></div>
-                <div>PA: <strong style={{ color: '#111827' }}>{triajeData.presion_arterial_sistolica}/{triajeData.presion_arterial_diastolica} mmHg</strong></div>
-                <div>T°: <strong style={{ color: '#111827' }}>{triajeData.temperatura} °C</strong></div>
-                <div>SpO2: <strong style={{ color: '#111827' }}>{triajeData.saturacion_oxigeno} %</strong></div>
-                <div>Resp: <strong style={{ color: '#111827' }}>{triajeData.frecuencia_respiratoria} rpm</strong></div>
-                <div>Glasgow: <strong style={{ color: '#111827' }}>{triajeData.glasgow}/15</strong></div>
+                <div>FC: <strong style={{ color: '#111827' }}>{triajeData.frecuencia_cardiaca ?? '--'} lpm</strong></div>
+                <div>PA: <strong style={{ color: '#111827' }}>{triajeData.presion_sistolica ?? '--'}/{triajeData.presion_diastolica ?? '--'} mmHg</strong></div>
+                <div>T°: <strong style={{ color: '#111827' }}>{triajeData.temperatura_celsius ?? '--'} °C</strong></div>
+                <div>SpO2: <strong style={{ color: '#111827' }}>{triajeData.saturacion_oxigeno ?? '--'} %</strong></div>
+                <div>Resp: <strong style={{ color: '#111827' }}>{triajeData.frecuencia_respiratoria ?? '--'} rpm</strong></div>
+                <div>Glasgow: <strong style={{ color: '#111827' }}>{triajeData.glasgow ?? '--'}/15</strong></div>
               </div>
             )}
             <textarea 
@@ -795,215 +659,35 @@ export default function ConsultaSOAP() {
           
           <div style={sectionBox('#64748B')}>
             <h3 style={labelStyle('#334155')}><span>⚕️</span> Acciones Clínicas</h3>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                onClick={() => { setActivePanel(activePanel === 'receta' ? null : 'receta'); setRecetaMsg(null); }}
-                style={btnToggle(activePanel === 'receta', '#065F46', '#ECFDF5')}
-              >
-                <span>💊</span> {activePanel === 'receta' ? 'Cerrar' : 'Emitir Receta'}
-              </button>
-              <button
-                onClick={() => { setActivePanel(activePanel === 'estudio' ? null : 'estudio'); setEstudioMsg(null); }}
-                style={btnToggle(activePanel === 'estudio', '#1E40AF', '#EFF6FF')}
-              >
-                <span>🔬</span> {activePanel === 'estudio' ? 'Cerrar' : 'Solicitar Estudios'}
-              </button>
-            </div>
-            <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: '#94A3B8' }}>
-              {isEditable ? 'Finaliza la consulta antes de emitir recetas.' : 'Puedes emitir recetas y órdenes de estudio desde aquí.'}
-            </p>
+            {isEditable && (
+              <p style={{ margin: 0, fontSize: '13px', color: '#94A3B8' }}>
+                Finaliza la consulta para habilitar recetas y órdenes de estudio.
+              </p>
+            )}
+            {isCompletada && (
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  onClick={() => navigate(`/recetas?consulta=${consulta.id}`)}
+                  style={btnToggle(false, '#065F46', '#ECFDF5')}
+                >
+                  <span>💊</span> Emitir Receta
+                </button>
+                <button
+                  onClick={() => navigate(`/estudios/solicitud?consulta=${consulta.id}`)}
+                  style={btnToggle(false, '#1E40AF', '#EFF6FF')}
+                >
+                  <span>🔬</span> Solicitar Estudios
+                </button>
+              </div>
+            )}
+            {isFirmada && (
+              <p style={{ margin: 0, fontSize: '13px', color: '#059669', fontWeight: 600 }}>
+                ✅ Consulta sellada. Las acciones clínicas pueden gestionarse desde el historial.
+              </p>
+            )}
           </div>
         </div>
       </div>
-
-      {/* PANEL EXPANDIBLE: RECETA / ESTUDIOS */}
-      {activePanel === 'receta' && (
-        <div style={{ ...sectionBox('#065F46'), marginBottom: '20px' }}>
-          <h3 style={labelStyle('#065F46')}><span>💊</span> Emitir Receta Médica</h3>
-
-          {isEditable && (
-            <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '13px', color: '#92400E' }}>
-              La consulta debe estar <strong>Finalizada</strong> para emitir una receta válida.
-            </div>
-          )}
-
-          {recetaDetalles.map((det, idx) => (
-            <div key={idx} style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '8px', padding: '14px', marginBottom: '12px', position: 'relative' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <span style={{ fontWeight: 700, fontSize: '13px', color: '#166534' }}>Medicamento {idx + 1}</span>
-                {recetaDetalles.length > 1 && (
-                  <button
-                    onClick={() => setRecetaDetalles(prev => prev.filter((_, i) => i !== idx))}
-                    style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }}
-                  >✕</button>
-                )}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '10px', marginBottom: '8px' }}>
-                <div>
-                  <label style={{ fontSize: '11px', color: '#6B7280', fontWeight: 600 }}>Medicamento *</label>
-                  <input
-                    style={inputInline}
-                    placeholder="Ej: Amoxicilina"
-                    value={det.medicamento}
-                    onChange={e => setRecetaDetalles(prev => prev.map((d, i) => i === idx ? { ...d, medicamento: e.target.value } : d))}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '11px', color: '#6B7280', fontWeight: 600 }}>Concentración</label>
-                  <input
-                    style={inputInline}
-                    placeholder="Ej: 500mg"
-                    value={det.concentracion}
-                    onChange={e => setRecetaDetalles(prev => prev.map((d, i) => i === idx ? { ...d, concentracion: e.target.value } : d))}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '11px', color: '#6B7280', fontWeight: 600 }}>Dosis</label>
-                  <input
-                    style={inputInline}
-                    placeholder="Ej: 1 comprimido"
-                    value={det.dosis}
-                    onChange={e => setRecetaDetalles(prev => prev.map((d, i) => i === idx ? { ...d, dosis: e.target.value } : d))}
-                  />
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '11px', color: '#6B7280', fontWeight: 600 }}>Frecuencia</label>
-                  <input
-                    style={inputInline}
-                    placeholder="Ej: Cada 8 horas"
-                    value={det.frecuencia}
-                    onChange={e => setRecetaDetalles(prev => prev.map((d, i) => i === idx ? { ...d, frecuencia: e.target.value } : d))}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '11px', color: '#6B7280', fontWeight: 600 }}>Duración</label>
-                  <input
-                    style={inputInline}
-                    placeholder="Ej: 7 días"
-                    value={det.duracion}
-                    onChange={e => setRecetaDetalles(prev => prev.map((d, i) => i === idx ? { ...d, duracion: e.target.value } : d))}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '11px', color: '#6B7280', fontWeight: 600 }}>Instrucciones</label>
-                  <input
-                    style={inputInline}
-                    placeholder="Ej: Tomar con alimentos"
-                    value={det.instrucciones}
-                    onChange={e => setRecetaDetalles(prev => prev.map((d, i) => i === idx ? { ...d, instrucciones: e.target.value } : d))}
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-
-          <button
-            onClick={() => setRecetaDetalles(prev => [...prev, recetaVacio()])}
-            style={{ background: 'none', border: '1.5px dashed #6EE7B7', color: '#047857', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, width: '100%', marginBottom: '14px' }}
-          >
-            + Agregar Medicamento
-          </button>
-
-          <div style={{ marginBottom: '14px' }}>
-            <label style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Observaciones generales</label>
-            <textarea
-              style={{ ...textareaStyle, height: '60px' }}
-              placeholder="Indicaciones adicionales para el paciente..."
-              value={recetaObs}
-              onChange={e => setRecetaObs(e.target.value)}
-            />
-          </div>
-
-          {recetaMsg && (
-            <div style={{ padding: '10px 14px', borderRadius: '6px', marginBottom: '12px', background: recetaMsg.ok ? '#ECFDF5' : '#FEF2F2', color: recetaMsg.ok ? '#065F46' : '#991B1B', border: `1px solid ${recetaMsg.ok ? '#6EE7B7' : '#FECACA'}`, fontSize: '13px', fontWeight: 600 }}>
-              {recetaMsg.ok ? '✓' : '✕'} {recetaMsg.text}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={handleGuardarReceta} disabled={guardandoReceta} style={actionBtn('#065F46')}>
-              {guardandoReceta ? 'Emitiendo...' : '💊 Emitir Receta'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {activePanel === 'estudio' && (
-        <div style={{ ...sectionBox('#1E40AF'), marginBottom: '20px' }}>
-          <h3 style={labelStyle('#1E40AF')}><span>🔬</span> Solicitar Orden de Estudio</h3>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px', marginBottom: '14px' }}>
-            <div>
-              <label style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Tipo de Estudio *</label>
-              <select
-                style={{ ...inputInline, height: '38px' }}
-                value={tipoEstudio}
-                onChange={e => setTipoEstudio(e.target.value)}
-              >
-                {TIPOS_ESTUDIO.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Descripción *</label>
-              <input
-                style={inputInline}
-                placeholder="Ej: Hemograma completo, glucosa, creatinina..."
-                value={descEstudio}
-                onChange={e => setDescEstudio(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '14px' }}>
-            <label style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Indicación Clínica</label>
-            <input
-              style={inputInline}
-              placeholder="Ej: Control de diabetes, seguimiento post-consulta..."
-              value={indicEstudio}
-              onChange={e => setIndicEstudio(e.target.value)}
-            />
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: urgenteEstudio ? '10px' : '14px' }}>
-            <input
-              type="checkbox"
-              id="urgente"
-              checked={urgenteEstudio}
-              onChange={e => setUrgenteEstudio(e.target.checked)}
-              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-            />
-            <label htmlFor="urgente" style={{ fontSize: '13px', fontWeight: 600, color: '#DC2626', cursor: 'pointer' }}>
-              🚨 Marcar como urgente
-            </label>
-          </div>
-
-          {urgenteEstudio && (
-            <div style={{ marginBottom: '14px' }}>
-              <label style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Motivo de urgencia</label>
-              <input
-                style={{ ...inputInline, borderColor: '#FCA5A5' }}
-                placeholder="Explique por qué es urgente..."
-                value={motivoUrgEstudio}
-                onChange={e => setMotivoUrgEstudio(e.target.value)}
-              />
-            </div>
-          )}
-
-          {estudioMsg && (
-            <div style={{ padding: '10px 14px', borderRadius: '6px', marginBottom: '12px', background: estudioMsg.ok ? '#EFF6FF' : '#FEF2F2', color: estudioMsg.ok ? '#1E40AF' : '#991B1B', border: `1px solid ${estudioMsg.ok ? '#BFDBFE' : '#FECACA'}`, fontSize: '13px', fontWeight: 600 }}>
-              {estudioMsg.ok ? '✓' : '✕'} {estudioMsg.text}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={handleGuardarEstudio} disabled={guardandoEstudio} style={actionBtn('#1E40AF')}>
-              {guardandoEstudio ? 'Enviando...' : '🔬 Crear Orden de Estudio'}
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* SECCIÓN PLAN (P) - ANCHO COMPLETO */}
       <div style={sectionBox('#F59E0B')}>
@@ -1034,7 +718,7 @@ export default function ConsultaSOAP() {
             <button onClick={() => handleSave()} disabled={saving} style={actionBtn('#334155')}>
               <Save style={{ width: '18px', height: '18px' }} /> Guardar Borrador
             </button>
-            <button onClick={() => handleCompletar('COMPLETADA')} disabled={saving} style={actionBtn('#F59E0B')}>
+            <button onClick={() => handleCompletar()} disabled={saving} style={actionBtn('#F59E0B')}>
                <FileCheck style={{ width: '18px', height: '18px' }} /> Finalizar Consulta
              </button>
           </>

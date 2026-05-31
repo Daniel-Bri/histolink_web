@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { api } from '../api/axiosConfig'
 
 interface DetalleReceta {
@@ -62,6 +63,7 @@ const detalleVacio = (): DetalleReceta => ({
 })
 
 export default function Recetas() {
+  const [searchParams] = useSearchParams()
   const [recetas, setRecetas] = useState<Receta[]>([])
   const [consultas, setConsultas] = useState<Consulta[]>([])
   const [loading, setLoading] = useState(true)
@@ -71,7 +73,7 @@ export default function Recetas() {
   const [accionLoading, setAccionLoading] = useState(false)
 
   // Formulario nueva receta
-  const [consultaId, setConsultaId] = useState('')
+  const [consultaId, setConsultaId] = useState(searchParams.get('consulta') ?? '')
   const [observaciones, setObservaciones] = useState('')
   const [detalles, setDetalles] = useState<DetalleReceta[]>([detalleVacio()])
   const [guardandoReceta, setGuardandoReceta] = useState(false)

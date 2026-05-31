@@ -22,6 +22,8 @@ export interface ConsultaMedica {
   ficha: number;
   paciente_nombre: string;
   ficha_correlativo: string;
+  paciente_edad: number | null;
+  paciente_genero: string;
   medico: number;
   triaje: number | null;
   estado: 'BORRADOR' | 'COMPLETADA' | 'FIRMADA';
@@ -38,7 +40,7 @@ export interface ConsultaMedica {
   // SOAP-P
   plan_tratamiento: string;
   indicaciones_alta: string;
-  // Firma Digital (T022 / CU11)
+  // Firma Digital (CU11)
   hash_documento?: string;
   firmada_por?: number;
   firmada_por_nombre?: string;
@@ -51,11 +53,21 @@ export interface ConsultaMedica {
 export interface FichaQueue {
   id: number;
   correlativo: string;
-  paciente_nombre: string;
-  paciente_edad: number;
-  paciente_genero: string;
+  paciente: {
+    id: number;
+    nombre_completo: string;
+    ci: string;
+  };
   estado: string;
   fecha_apertura: string;
+  triaje_resumen: {
+    frecuencia_cardiaca: number | null;
+    presion_sistolica: number | null;
+    presion_diastolica: number | null;
+    temperatura_celsius: number | null;
+    saturacion_oxigeno: number | null;
+    glasgow: number | null;
+  } | null;
 }
 
 export type UpdateConsultaDTO = Partial<ConsultaMedica>;
@@ -69,5 +81,6 @@ export const consultaService = {
   firmar: (id: number) => api.patch<ConsultaMedica>(`consultas/consultas/${id}/firmar/`),
   searchCIE10: (termino: string) => api.get<DiagnosticoCIE10[]>(`auditoria/cie10/search/?q=${termino}`),
   getAll: (params?: any) => api.get<{ results: ConsultaMedica[] }>('consultas/consultas/', { params }),
-  getQueue: () => api.get<{ results: any[] }>('fichas/', { params: { en_curso: true, estado: 'EN_TRIAJE' } })
+  eliminar: (id: number) => api.delete(`consultas/consultas/${id}/`),
+  getQueue: () => api.get<{ results: FichaQueue[] }>('fichas/', { params: { en_curso: true } })
 };

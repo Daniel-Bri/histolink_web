@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AlertError from '../../components/AlertError'
 import ConfirmModal from '../../components/ConfirmModal'
@@ -28,6 +28,26 @@ export default function PersonalList() {
   const [deactivateLoading, setDeactivateLoading] = useState(false)
   const [reactivateTarget, setReactivateTarget] = useState<PersonalSalud | null>(null)
   const [reactivateLoading, setReactivateLoading] = useState(false)
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  // Auto-foco en buscador al cargar
+  useEffect(() => { searchRef.current?.focus() }, [])
+
+  // Ctrl+F → enfocar buscador | Escape → limpiar búsqueda
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault()
+        searchRef.current?.focus()
+      }
+      if (e.key === 'Escape' && busqueda) {
+        setBusqueda('')
+        searchRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [busqueda])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -126,9 +146,11 @@ export default function PersonalList() {
         display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap',
       }}>
         <input
+          ref={searchRef}
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Buscar por nombre, usuario o ítem..."
+          onKeyDown={e => e.key === 'Escape' && (setBusqueda(''), e.currentTarget.blur())}
+          placeholder="Buscar por nombre, usuario o ítem... (Ctrl+F)"
           style={{
             flex: 1, minWidth: '180px',
             padding: '8px 12px', fontSize: '13px', borderRadius: '8px',

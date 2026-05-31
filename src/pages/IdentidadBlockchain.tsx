@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/axiosConfig'
 
 interface EventoBlockchain {
@@ -58,10 +58,18 @@ export default function IdentidadBlockchain() {
   const [usuarioId, setUsuarioId] = useState('')
   const [registrando, setRegistrando] = useState(false)
   const [identidadRegistrada, setIdentidadRegistrada] = useState<IdentidadRegistrada | null>(null)
+  const [busquedaRegistrar, setBusquedaRegistrar] = useState('')
+  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<PersonalIdentidad | null>(null)
+  const [dropdownRegistrarAbierto, setDropdownRegistrarAbierto] = useState(false)
+  const dropdownRegistrarRef = useRef<HTMLDivElement>(null)
 
   const [usuarioVerificarId, setUsuarioVerificarId] = useState('')
   const [verificando, setVerificando] = useState(false)
   const [resultadoVerificacion, setResultadoVerificacion] = useState<VerificacionRol | null>(null)
+  const [busquedaVerificar, setBusquedaVerificar] = useState('')
+  const [usuarioVerificarSel, setUsuarioVerificarSel] = useState<PersonalIdentidad | null>(null)
+  const [dropdownVerificarAbierto, setDropdownVerificarAbierto] = useState(false)
+  const dropdownVerificarRef = useRef<HTMLDivElement>(null)
 
   const cargarDatos = async () => {
     setLoading(true)
@@ -94,8 +102,43 @@ export default function IdentidadBlockchain() {
     return matchBusqueda && matchRol
   })
 
+  const resultadosRegistrar = busquedaRegistrar.trim()
+    ? personal
+        .filter(p => p.estado_ledger === 'PENDIENTE')
+        .filter(p => {
+          const q = busquedaRegistrar.toLowerCase()
+          return p.nombre_completo.toLowerCase().includes(q) ||
+            p.username.toLowerCase().includes(q) ||
+            String(p.id).includes(q) ||
+            p.rol.toLowerCase().includes(q)
+        })
+    : []
+
+  const resultadosVerificar = busquedaVerificar.trim()
+    ? personal.filter(p => {
+        const q = busquedaVerificar.toLowerCase()
+        return p.nombre_completo.toLowerCase().includes(q) ||
+          p.username.toLowerCase().includes(q) ||
+          String(p.id).includes(q) ||
+          p.rol.toLowerCase().includes(q)
+      })
+    : []
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRegistrarRef.current && !dropdownRegistrarRef.current.contains(e.target as Node)) {
+        setDropdownRegistrarAbierto(false)
+      }
+      if (dropdownVerificarRef.current && !dropdownVerificarRef.current.contains(e.target as Node)) {
+        setDropdownVerificarAbierto(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
   const handleRegistrarIdentidad = async () => {
-    if (!usuarioId) { setError('Ingresa el ID del usuario'); return }
+    if (!usuarioId) { setError('Selecciona un usuario de la lista'); return }
     setRegistrando(true)
     setError('')
     setIdentidadRegistrada(null)
@@ -104,6 +147,8 @@ export default function IdentidadBlockchain() {
       setIdentidadRegistrada(res.data)
       setExito('Identidad registrada exitosamente')
       setUsuarioId('')
+      setUsuarioSeleccionado(null)
+      setBusquedaRegistrar('')
       await cargarDatos()
       setTimeout(() => setExito(''), 3000)
     } catch (e: any) {
@@ -114,7 +159,7 @@ export default function IdentidadBlockchain() {
   }
 
   const handleVerificarRol = async () => {
-    if (!usuarioVerificarId) { setError('Ingresa el ID del usuario a verificar'); return }
+    if (!usuarioVerificarId) { setError('Selecciona un usuario de la lista'); return }
     setVerificando(true)
     setError('')
     setResultadoVerificacion(null)
@@ -235,13 +280,91 @@ export default function IdentidadBlockchain() {
         {/* Registrar */}
         <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,3,184,0.06)' }}>
           <h2 style={{ fontSize: '16px', fontWeight: 600, color: '#0003B8', marginBottom: '8px' }}>🔑 Registrar Identidad</h2>
-          <p style={{ fontSize: '13px', color: '#666', marginBottom: '16px' }}>Genera claves RSA y DID para un usuario.</p>
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 600, color: '#555', display: 'block', marginBottom: '6px' }}>ID del Usuario *</label>
-            <input type="number" value={usuarioId} onChange={e => setUsuarioId(e.target.value)} placeholder="Ej: 15" style={inputStyle} />
+          <p style={{ fontSize: '13px', color: '#666', marginBottom: '16px' }}>Genera claves RSA y DID para un usuario sin identidad.</p>
+
+          <div style={{ marginBottom: '12px', position: 'relative' }} ref={dropdownRegistrarRef}>
+            <label style={{ fontSize: '13px', fontWeight: 600, color: '#555', display: 'block', marginBottom: '6px' }}>
+              Buscar usuario *
+            </label>
+
+            {usuarioSeleccionado ? (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                background: '#F0F6FF', border: '1.5px solid #0003B8', borderRadius: '8px', padding: '10px 12px',
+              }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0003B8' }}>{usuarioSeleccionado.nombre_completo}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#555' }}>@{usuarioSeleccionado.username} · {usuarioSeleccionado.rol} · ID {usuarioSeleccionado.id}</p>
+                </div>
+                <button
+                  onClick={() => { setUsuarioSeleccionado(null); setUsuarioId(''); setBusquedaRegistrar('') }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888', fontSize: '18px', lineHeight: 1, padding: '0 4px' }}
+                >×</button>
+              </div>
+            ) : (
+              <>
+                <input
+                  value={busquedaRegistrar}
+                  onChange={e => { setBusquedaRegistrar(e.target.value); setDropdownRegistrarAbierto(true) }}
+                  onFocus={() => setDropdownRegistrarAbierto(true)}
+                  placeholder="Buscar por nombre, usuario o ID..."
+                  style={inputStyle}
+                />
+                {dropdownRegistrarAbierto && resultadosRegistrar.length > 0 && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                    background: 'white', border: '1px solid #B3D4FF', borderRadius: '8px',
+                    boxShadow: '0 4px 16px rgba(0,3,184,0.12)', maxHeight: '220px', overflowY: 'auto',
+                    marginTop: '4px',
+                  }}>
+                    {resultadosRegistrar.map(p => (
+                      <div
+                        key={p.id}
+                        onMouseDown={() => {
+                          setUsuarioSeleccionado(p)
+                          setUsuarioId(String(p.id))
+                          setBusquedaRegistrar('')
+                          setDropdownRegistrarAbierto(false)
+                        }}
+                        style={{
+                          padding: '10px 14px', cursor: 'pointer',
+                          borderBottom: '1px solid #F0F6FF',
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#F0F6FF')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'white')}
+                      >
+                        <div>
+                          <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#0003B8' }}>{p.nombre_completo}</p>
+                          <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#666' }}>@{p.username} · ID {p.id}</p>
+                        </div>
+                        <span style={{ background: '#FFF8E1', color: '#F57F17', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '12px' }}>
+                          {p.rol}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {dropdownRegistrarAbierto && busquedaRegistrar.trim() && resultadosRegistrar.length === 0 && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                    background: 'white', border: '1px solid #B3D4FF', borderRadius: '8px',
+                    padding: '12px', marginTop: '4px', fontSize: '13px', color: '#888', textAlign: 'center',
+                  }}>
+                    Sin resultados. Solo se muestran usuarios sin identidad registrada.
+                  </div>
+                )}
+              </>
+            )}
           </div>
-          <button onClick={handleRegistrarIdentidad} disabled={registrando}
-            style={{ background: '#0003B8', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', width: '100%' }}>
+
+          <button onClick={handleRegistrarIdentidad} disabled={registrando || !usuarioSeleccionado}
+            style={{
+              background: usuarioSeleccionado ? '#0003B8' : '#B3D4FF',
+              color: 'white', border: 'none', borderRadius: '8px',
+              padding: '10px 20px', fontSize: '14px', fontWeight: 600,
+              cursor: usuarioSeleccionado ? 'pointer' : 'not-allowed', width: '100%',
+            }}>
             {registrando ? 'Registrando...' : '+ Registrar Identidad'}
           </button>
           {identidadRegistrada && (
@@ -260,12 +383,95 @@ export default function IdentidadBlockchain() {
         <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,3,184,0.06)' }}>
           <h2 style={{ fontSize: '16px', fontWeight: 600, color: '#0003B8', marginBottom: '8px' }}>🔍 Verificar Integridad de Rol</h2>
           <p style={{ fontSize: '13px', color: '#666', marginBottom: '16px' }}>Contrasta el rol local con el registro en blockchain.</p>
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 600, color: '#555', display: 'block', marginBottom: '6px' }}>ID del Usuario *</label>
-            <input type="number" value={usuarioVerificarId} onChange={e => setUsuarioVerificarId(e.target.value)} placeholder="Ej: 15" style={inputStyle} />
+
+          <div style={{ marginBottom: '12px', position: 'relative' }} ref={dropdownVerificarRef}>
+            <label style={{ fontSize: '13px', fontWeight: 600, color: '#555', display: 'block', marginBottom: '6px' }}>
+              Buscar usuario *
+            </label>
+
+            {usuarioVerificarSel ? (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                background: '#F0FFF8', border: '1.5px solid #00A896', borderRadius: '8px', padding: '10px 12px',
+              }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#00A896' }}>{usuarioVerificarSel.nombre_completo}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#555' }}>@{usuarioVerificarSel.username} · {usuarioVerificarSel.rol} · ID {usuarioVerificarSel.id}</p>
+                </div>
+                <button
+                  onClick={() => { setUsuarioVerificarSel(null); setUsuarioVerificarId(''); setBusquedaVerificar(''); setResultadoVerificacion(null) }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888', fontSize: '18px', lineHeight: 1, padding: '0 4px' }}
+                >×</button>
+              </div>
+            ) : (
+              <>
+                <input
+                  value={busquedaVerificar}
+                  onChange={e => { setBusquedaVerificar(e.target.value); setDropdownVerificarAbierto(true) }}
+                  onFocus={() => setDropdownVerificarAbierto(true)}
+                  placeholder="Buscar por nombre, usuario o ID..."
+                  style={inputStyle}
+                />
+                {dropdownVerificarAbierto && resultadosVerificar.length > 0 && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                    background: 'white', border: '1px solid #B3D4FF', borderRadius: '8px',
+                    boxShadow: '0 4px 16px rgba(0,3,184,0.12)', maxHeight: '220px', overflowY: 'auto',
+                    marginTop: '4px',
+                  }}>
+                    {resultadosVerificar.map(p => (
+                      <div
+                        key={p.id}
+                        onMouseDown={() => {
+                          setUsuarioVerificarSel(p)
+                          setUsuarioVerificarId(String(p.id))
+                          setBusquedaVerificar('')
+                          setDropdownVerificarAbierto(false)
+                          setResultadoVerificacion(null)
+                        }}
+                        style={{
+                          padding: '10px 14px', cursor: 'pointer',
+                          borderBottom: '1px solid #F0F6FF',
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#F0F6FF')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'white')}
+                      >
+                        <div>
+                          <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#0003B8' }}>{p.nombre_completo}</p>
+                          <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#666' }}>@{p.username} · ID {p.id}</p>
+                        </div>
+                        <span style={{
+                          background: p.estado_ledger === 'INMUTABLE' ? '#E8F5E9' : '#FFF8E1',
+                          color: p.estado_ledger === 'INMUTABLE' ? '#2E7D32' : '#F57F17',
+                          fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '12px',
+                        }}>
+                          {p.rol}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {dropdownVerificarAbierto && busquedaVerificar.trim() && resultadosVerificar.length === 0 && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                    background: 'white', border: '1px solid #B3D4FF', borderRadius: '8px',
+                    padding: '12px', marginTop: '4px', fontSize: '13px', color: '#888', textAlign: 'center',
+                  }}>
+                    No se encontraron usuarios.
+                  </div>
+                )}
+              </>
+            )}
           </div>
-          <button onClick={handleVerificarRol} disabled={verificando}
-            style={{ background: '#0080FF', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', width: '100%' }}>
+
+          <button onClick={handleVerificarRol} disabled={verificando || !usuarioVerificarSel}
+            style={{
+              background: usuarioVerificarSel ? '#0080FF' : '#B3D4FF',
+              color: 'white', border: 'none', borderRadius: '8px',
+              padding: '10px 20px', fontSize: '14px', fontWeight: 600,
+              cursor: usuarioVerificarSel ? 'pointer' : 'not-allowed', width: '100%',
+            }}>
             {verificando ? 'Verificando...' : '🔍 Verificar Rol'}
           </button>
           {resultadoVerificacion && (

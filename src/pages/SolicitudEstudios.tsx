@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import type { AxiosError } from 'axios'
 import { hasRole, getStoredUser } from '../utils/auth'
 import {
@@ -49,11 +50,14 @@ function nombrePaciente(c: ConsultaOption): string {
 }
 
 export default function SolicitudEstudios() {
+  const [searchParams] = useSearchParams()
   const puedeSolicitar = useMemo(() => hasRole('Médico', 'Administrativo', 'Director'), [])
   const user = getStoredUser()
   const [consultas, setConsultas] = useState<ConsultaOption[]>([])
   const [search, setSearch] = useState('')
-  const [consultaId, setConsultaId] = useState<number | null>(null)
+  const [consultaId, setConsultaId] = useState<number | null>(
+    searchParams.get('consulta') ? Number(searchParams.get('consulta')) : null
+  )
   const [loadingConsultas, setLoadingConsultas] = useState(false)
   const [tipo, setTipo] = useState<TipoEstudio>('LAB')
   const [descripcion, setDescripcion] = useState('')

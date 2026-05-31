@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import utc from 'dayjs/plugin/utc';
@@ -8,7 +9,6 @@ import { fichaService } from '../services/fichaService';
 import { fetchEspecialidades } from '../services/especialidadService';
 import type { Especialidad } from '../services/especialidadService';
 import type { FichaBrief, NivelUrgencia } from '../types/triaje.types';
-import LoadingSpinner from '../components/LoadingSpinner';
 import AlertError from '../components/AlertError';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -18,40 +18,41 @@ dayjs.extend(timezone);
 
 const BOLIVIA_TZ = 'America/La_Paz';
 
-// Estados Meta (Colors from prompt)
-const ESTADO_META: Record<string, { label: string; bg: string; text: string; icon: string }> = {
-  PENDIENTE:     { label: 'Pendiente',     bg: '#F59E0B', text: '#fff', icon: '⏳' },
-  EN_ATENCION:   { label: 'En atención',   bg: '#3B82F6', text: '#fff', icon: '👨‍⚕️' },
-  EN_ENFERMERIA: { label: 'Enfermería',    bg: '#06B6D4', text: '#fff', icon: '💉' },
-  EN_LABORATORIO:{ label: 'Laboratorio',   bg: '#8B5CF6', text: '#fff', icon: '🔬' },
-  FINALIZADO:    { label: 'Finalizado',    bg: '#10B981', text: '#fff', icon: '✅' },
-  CANCELADO:     { label: 'Cancelado',     bg: '#6B7280', text: '#fff', icon: '❌' },
-  DERIVADO:      { label: 'Derivado',      bg: '#F97316', text: '#fff', icon: '🚑' },
+const ESTADO_META: Record<string, { label: string; bg: string; text: string }> = {
+  PENDIENTE:      { label: 'Pendiente',    bg: '#FEF3C7', text: '#B45309' },
+  EN_ATENCION:    { label: 'En atención',  bg: '#DBEAFE', text: '#1D4ED8' },
+  EN_ENFERMERIA:  { label: 'Enfermería',   bg: '#CFFAFE', text: '#0E7490' },
+  EN_LABORATORIO: { label: 'Laboratorio',  bg: '#EDE9FE', text: '#6D28D9' },
+  FINALIZADO:     { label: 'Finalizado',   bg: '#DCFCE7', text: '#15803D' },
+  CANCELADO:      { label: 'Cancelado',    bg: '#F1F5F9', text: '#64748B' },
+  DERIVADO:       { label: 'Derivado',     bg: '#FFEDD5', text: '#C2410C' },
+  ABIERTA:        { label: 'Abierta',      bg: '#DBEAFE', text: '#1D4ED8' },
+  EN_TRIAJE:      { label: 'En triaje',    bg: '#FEF3C7', text: '#B45309' },
+  CERRADA:        { label: 'Cerrada',      bg: '#F1F5F9', text: '#64748B' },
 };
 
-// Urgencia Meta
-const URGENCIA_META: Record<string, { label: string; bar: string; bg: string; icon: string }> = {
-  ALTA:    { label: 'Alta',    bar: '#EF4444', bg: '#FEE2E2', icon: '🚨' },
-  MEDIA:   { label: 'Media',   bar: '#F97316', bg: '#FFEDD5', icon: '⚠️' },
-  BAJA:    { label: 'Baja',    bar: '#22C55E', bg: '#DCFCE7', icon: '✅' },
-  NINGUNA: { label: '📋',     bar: '#9CA3AF', bg: '#F3F4F6', icon: '📋' },
+const URGENCIA_BAR: Record<string, string> = {
+  ALTA:    '#EF4444',
+  MEDIA:   '#F97316',
+  BAJA:    '#22C55E',
+  NINGUNA: '#CBD5E1',
 };
 
-function mapNivelToMeta(nivel?: NivelUrgencia) {
-  if (!nivel) return URGENCIA_META.NINGUNA;
-  if (nivel === 'ROJO' || nivel === 'NARANJA') return URGENCIA_META.ALTA;
-  if (nivel === 'AMARILLO') return URGENCIA_META.MEDIA;
-  return URGENCIA_META.BAJA;
+function mapNivelToUrgencia(nivel?: NivelUrgencia): 'ALTA' | 'MEDIA' | 'BAJA' | 'NINGUNA' {
+  if (!nivel) return 'NINGUNA';
+  if (nivel === 'ROJO' || nivel === 'NARANJA') return 'ALTA';
+  if (nivel === 'AMARILLO') return 'MEDIA';
+  return 'BAJA';
 }
 
 export default function FichasDelDia() {
+  const navigate = useNavigate();
   const [fichas, setFichas] = useState<FichaBrief[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fecha, setFecha] = useState(dayjs().format('YYYY-MM-DD'));
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
-  
-  // Modals
+
   const [confirmCancel, setConfirmCancel] = useState<{ id: number; open: boolean }>({ id: 0, open: false });
   const [derivarModal, setDerivarModal] = useState<{ id: number; open: boolean }>({ id: 0, open: false });
   const [selectedEspecialidad, setSelectedEspecialidad] = useState<number>(0);
@@ -59,15 +60,10 @@ export default function FichasDelDia() {
   const fetchFichas = useCallback(async (silently = false) => {
     if (!silently) setLoading(true);
     try {
-      const res = await fichaService.listar({
-        fecha_desde: fecha,
-        fecha_hasta: fecha,
-        page_size: 100,
-      });
+      const res = await fichaService.listar({ fecha_desde: fecha, fecha_hasta: fecha, page_size: 100 });
       setFichas(res.data.results || []);
       setError(null);
-    } catch (err) {
-      console.error(err);
+    } catch {
       if (!silently) setError('Error al cargar las fichas del día.');
     } finally {
       if (!silently) setLoading(false);
@@ -88,8 +84,7 @@ export default function FichasDelDia() {
     try {
       await fichaService.cambiarEstado(fichaId, nuevoEstado);
       await fetchFichas(true);
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert('Error al cambiar el estado de la ficha.');
     }
   };
@@ -100,274 +95,221 @@ export default function FichasDelDia() {
       await fichaService.derivar(derivarModal.id, selectedEspecialidad);
       setDerivarModal({ id: 0, open: false });
       await fetchFichas(true);
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert('Error al derivar la ficha.');
     }
   };
 
   const handleCancelFicha = async () => {
     try {
-      await fichaService.cambiarEstado(confirmCancel.id, 'CANCELADO');
+      await fichaService.cambiarEstado(confirmCancel.id, 'CANCELADA');
       setConfirmCancel({ id: 0, open: false });
       await fetchFichas(true);
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert('Error al cancelar la ficha.');
     }
   };
 
   const getWaitTime = (apertura: string) => {
-    const start = dayjs.utc(apertura);
-    const now = dayjs().utc();
-    const diff = now.diff(start, 'minute');
+    const diff = dayjs().utc().diff(dayjs.utc(apertura), 'minute');
     return diff > 0 ? diff : 0;
   };
 
-  const currentBoliviaTime = dayjs().tz(BOLIVIA_TZ).format('HH:mm');
-
   return (
-    <div style={{
-      maxWidth: '500px',
-      margin: '0 auto',
-      background: '#F0F6FF',
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      fontFamily: "'Segoe UI', sans-serif"
-    }}>
-      {/* AppBar */}
-      <div style={{
-        background: '#122268',
-        color: 'white',
-        padding: '16px 20px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-      }}>
+    <div style={{ padding: '32px' }}>
+
+      {/* Encabezado */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Fichas del día</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-            <span style={{ fontSize: '12px', opacity: 0.8 }}>Bolivia: {currentBoliviaTime}</span>
-            <span style={{ background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: 700 }}>
-              {fichas.length} total
-            </span>
-          </div>
+          <h1 style={{ fontSize: '22px', color: '#0003B8', fontWeight: 700, margin: 0 }}>Fichas del día</h1>
+          <p style={{ color: '#888', fontSize: '13px', margin: '4px 0 0 0' }}>
+            {fichas.length > 0
+              ? `${fichas.length} ficha${fichas.length !== 1 ? 's' : ''} registrada${fichas.length !== 1 ? 's' : ''}`
+              : 'Seguimiento de la cola de atención diaria'}
+          </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <input 
-            type="date" 
-            value={fecha} 
-            onChange={(e) => setFecha(e.target.value)}
-            style={{ 
-              background: 'rgba(255,255,255,0.1)', 
-              border: 'none', 
-              color: 'white', 
-              padding: '6px 10px', 
-              borderRadius: '6px',
-              fontSize: '13px',
-              outline: 'none'
+          <input
+            type="date"
+            value={fecha}
+            onChange={e => setFecha(e.target.value)}
+            style={{
+              padding: '8px 12px', fontSize: '13px', border: '1.5px solid #B3D4FF',
+              borderRadius: '8px', color: '#0003B8', background: 'white', outline: 'none',
             }}
           />
+          <button
+            onClick={() => fetchFichas()}
+            style={{
+              background: '#0003B8', color: 'white', border: 'none',
+              borderRadius: '8px', padding: '8px 18px', fontSize: '13px',
+              fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            🔄 Actualizar
+          </button>
         </div>
       </div>
 
-      {/* Pull to refresh indicator simulation */}
-      {loading && !fichas.length && <div style={{ padding: '40px', textAlign: 'center' }}><LoadingSpinner /></div>}
+      {error && <AlertError message={error} onDismiss={() => setError(null)} />}
 
-      {/* List */}
-      <div style={{ padding: '16px', flex: 1 }}>
-        {error && <AlertError message={error} />}
-        
-        {!loading && fichas.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748B' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
-            <p style={{ fontWeight: 600 }}>No hay fichas para el día seleccionado.</p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {fichas.map(ficha => {
-              const metaEstado = ESTADO_META[ficha.estado] || { label: ficha.estado, bg: '#E2E8F0', text: '#475569', icon: '📋' };
-              const metaUrgencia = mapNivelToMeta(ficha.triaje_resumen?.nivel_urgencia);
-              const initials = ficha.paciente.nombre_completo.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+      {loading ? (
+        <div style={{ background: 'white', borderRadius: '12px', padding: '48px', textAlign: 'center', color: '#0003B8', fontWeight: 600, boxShadow: '0 2px 8px rgba(0,3,184,0.06)' }}>
+          Cargando fichas...
+        </div>
+      ) : fichas.length === 0 ? (
+        <div style={{ background: 'white', borderRadius: '12px', padding: '60px', textAlign: 'center', color: '#888', boxShadow: '0 2px 8px rgba(0,3,184,0.06)' }}>
+          <div style={{ fontSize: '40px', marginBottom: '12px' }}>📋</div>
+          <p style={{ fontWeight: 600, margin: 0 }}>No hay fichas para el día seleccionado.</p>
+        </div>
+      ) : (
+        <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,3,184,0.06)', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#F0F6FF' }}>
+                {['Ficha', 'Paciente', 'CI', 'Hora apertura', 'Espera', 'Triaje', 'Estado', ''].map(h => (
+                  <th key={h} style={{
+                    padding: '12px 16px',
+                    textAlign: h === '' ? 'right' : 'left',
+                    fontSize: '12px', fontWeight: 700, color: '#0003B8',
+                    letterSpacing: '0.04em', textTransform: 'uppercase',
+                  }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {fichas.map((ficha, i) => {
+                const meta = ESTADO_META[ficha.estado] ?? { label: ficha.estado, bg: '#F1F5F9', text: '#333' };
+                const urgencia = mapNivelToUrgencia(ficha.triaje_resumen?.nivel_urgencia);
+                const barColor = URGENCIA_BAR[urgencia];
 
-              return (
-                <div key={ficha.id} style={{
-                  background: metaUrgencia.bg,
-                  borderRadius: '12px',
-                  display: 'flex',
-                  overflow: 'hidden',
-                  boxShadow: '0 2px 6px rgba(0,3,184,0.04)',
-                  border: '1px solid rgba(0,3,184,0.05)',
-                  position: 'relative'
-                }}>
-                  {/* Urgencia Bar */}
-                  <div style={{ width: '6px', background: metaUrgencia.bar, flexShrink: 0 }} />
-
-                  {/* Content */}
-                  <div style={{ padding: '16px', flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                return (
+                  <tr
+                    key={ficha.id}
+                    style={{
+                      borderTop: '1px solid #F0F6FF',
+                      background: i % 2 === 0 ? 'white' : '#FAFCFF',
+                    }}
+                  >
+                    {/* Barra de urgencia + correlativo */}
+                    <td style={{ padding: '0', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'stretch', height: '100%' }}>
+                        <div style={{ width: '4px', background: barColor, borderRadius: '2px 0 0 2px', flexShrink: 0 }} />
+                        <span style={{ padding: '12px 12px', fontSize: '13px', fontWeight: 700, color: '#0003B8' }}>
+                          {ficha.correlativo}
+                        </span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 600 }}>
+                      {ficha.paciente.nombre_completo}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '13px', color: '#555' }}>
+                      {ficha.paciente.ci}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '13px', color: '#555' }}>
+                      {dayjs.utc(ficha.fecha_apertura).tz(BOLIVIA_TZ).format('HH:mm')}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1D4ED8', fontWeight: 600 }}>
+                      {getWaitTime(ficha.fecha_apertura)} min
+                    </td>
+                    <td style={{ padding: '12px 16px' }}>
+                      {ficha.triaje_resumen ? (
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: barColor }}>
+                          {ficha.triaje_resumen.nivel_urgencia ?? '—'}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '12px', color: '#aaa' }}>Sin triaje</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '12px 16px' }}>
                       <span style={{
-                        background: metaEstado.bg,
-                        color: metaEstado.text,
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
+                        background: meta.bg, color: meta.text,
+                        padding: '4px 10px', borderRadius: '20px',
+                        fontSize: '12px', fontWeight: 600,
                       }}>
-                        <span>{metaEstado.icon}</span> {metaEstado.label}
+                        {meta.label}
                       </span>
-                      <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>
-                        Ficha #{ficha.correlativo}
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                      <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        background: '#122268',
-                        color: 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '14px',
-                        fontWeight: 700,
-                        flexShrink: 0
-                      }}>
-                        {initials}
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                        {/* ABIERTA: debe hacer triaje primero */}
+                        {ficha.estado === 'ABIERTA' && hasRole('Médico', 'Enfermera', 'Administrativo', 'Director') && (
+                          <button
+                            onClick={() => navigate(`/urgencias/${ficha.id}/triaje`)}
+                            style={{ background: '#0080FF', color: 'white', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            Ir a triaje →
+                          </button>
+                        )}
+                        {/* EN_TRIAJE: puede pasar a atención y abrir consulta */}
+                        {ficha.estado === 'EN_TRIAJE' && hasRole('Médico', 'Administrativo', 'Director') && (
+                          <button
+                            onClick={async () => {
+                              await handleEstadoChange(ficha.id, 'EN_ATENCION');
+                              navigate(`/consulta/ficha/${ficha.id}`);
+                            }}
+                            style={{ background: '#0003B8', color: 'white', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            Atender →
+                          </button>
+                        )}
+                        {/* EN_ATENCION: ir directamente a la consulta en curso */}
+                        {ficha.estado === 'EN_ATENCION' && hasRole('Médico', 'Administrativo', 'Director') && (
+                          <button
+                            onClick={() => navigate(`/consulta/ficha/${ficha.id}`)}
+                            style={{ background: '#059669', color: 'white', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            Ver consulta →
+                          </button>
+                        )}
+                        {(ficha.estado === 'ABIERTA' || ficha.estado === 'EN_TRIAJE' || ficha.estado === 'EN_ATENCION') && (
+                          <button
+                            onClick={() => setDerivarModal({ id: ficha.id, open: true })}
+                            style={{ background: 'transparent', color: '#F97316', border: '1.5px solid #FED7AA', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            Derivar
+                          </button>
+                        )}
+                        {ficha.estado !== 'CANCELADA' && ficha.estado !== 'CERRADA' && (
+                          <button
+                            onClick={() => setConfirmCancel({ id: ficha.id, open: true })}
+                            style={{ background: 'transparent', color: '#EF4444', border: '1.5px solid #FECACA', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            Cancelar
+                          </button>
+                        )}
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1E293B', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {ficha.paciente.nombre_completo}
-                        </h3>
-                        <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0' }}>CI: {ficha.paciente.ci}</p>
-                      </div>
-                    </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-                    <div style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      <div style={{ fontSize: '11px', color: '#475569', background: 'rgba(255,255,255,0.5)', padding: '4px 8px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.05)' }}>
-                        🕒 {dayjs.utc(ficha.fecha_apertura).tz(BOLIVIA_TZ).format('HH:mm')}
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#1D4ED8', fontWeight: 600, background: 'rgba(59,130,246,0.1)', padding: '4px 8px', borderRadius: '6px' }}>
-                        Espera: {getWaitTime(ficha.fecha_apertura)} min
-                      </div>
-                      {ficha.triaje_resumen && (
-                        <div style={{ fontSize: '11px', color: metaUrgencia.bar, fontWeight: 700, background: 'rgba(255,255,255,0.6)', padding: '4px 8px', borderRadius: '6px', border: `1px solid ${metaUrgencia.bar}22` }}>
-                          {metaUrgencia.icon} {metaUrgencia.label}
-                        </div>
-                      )}
-                    </div>
-
-                    {ficha.triaje_resumen?.motivo_consulta_triaje && (
-                      <p style={{ 
-                        fontSize: '12px', 
-                        color: '#475569', 
-                        margin: '10px 0 0',
-                        fontStyle: 'italic',
-                        background: 'rgba(255,255,255,0.4)',
-                        padding: '8px',
-                        borderRadius: '6px'
-                      }}>
-                        "{ficha.triaje_resumen.motivo_consulta_triaje.slice(0, 60)}{ficha.triaje_resumen.motivo_consulta_triaje.length > 60 ? '...' : ''}"
-                      </p>
-                    )}
-
-                    {/* Quick Actions */}
-                    <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      {ficha.estado === 'PENDIENTE' && hasRole('Médico') && (
-                        <button 
-                          onClick={() => handleEstadoChange(ficha.id, 'EN_ATENCION')}
-                          style={{ background: '#3B82F6', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
-                        >
-                          Iniciar atención
-                        </button>
-                      )}
-                      {ficha.estado === 'EN_ATENCION' && (
-                        <button 
-                          onClick={() => handleEstadoChange(ficha.id, 'FINALIZADO')}
-                          style={{ background: '#10B981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
-                        >
-                          Completar
-                        </button>
-                      )}
-                      {(ficha.estado === 'PENDIENTE' || ficha.estado === 'EN_ATENCION') && (
-                         <button 
-                          onClick={() => setDerivarModal({ id: ficha.id, open: true })}
-                          style={{ background: '#F97316', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
-                        >
-                          Derivar
-                        </button>
-                      )}
-                      {ficha.estado !== 'CANCELADO' && ficha.estado !== 'FINALIZADO' && (
-                        <button 
-                          onClick={() => setConfirmCancel({ id: ficha.id, open: true })}
-                          style={{ background: 'transparent', color: '#EF4444', border: '1px solid #FECACA', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
-                        >
-                          Cancelar
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* FAB Simulation */}
-      <button 
-        onClick={() => fetchFichas()}
-        style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          width: '56px',
-          height: '56px',
-          borderRadius: '28px',
-          background: '#122268',
-          color: 'white',
-          border: 'none',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '24px',
-          cursor: 'pointer',
-          zIndex: 200
-        }}
-      >
-        ↻
-      </button>
-
-      {/* Modals */}
-      <ConfirmModal 
+      {/* Modal cancelar */}
+      <ConfirmModal
         open={confirmCancel.open}
-        title="Cancelar Atención"
-        message="¿Estás seguro de que deseas cancelar esta ficha? Esta acción no se puede deshacer."
+        title="Cancelar Ficha"
+        message="¿Estás seguro de que deseas cancelar esta ficha?"
         confirmLabel="Sí, cancelar"
         onConfirm={handleCancelFicha}
         onCancel={() => setConfirmCancel({ id: 0, open: false })}
       />
 
+      {/* Modal derivar */}
       {derivarModal.open && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ background: 'white', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '400px' }}>
-            <h2 style={{ fontSize: '17px', fontWeight: 700, marginBottom: '16px' }}>Derivar Ficha</h2>
-            <p style={{ fontSize: '14px', color: '#64748B', marginBottom: '16px' }}>Selecciona la especialidad a la que deseas derivar al paciente:</p>
-            <select 
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ background: 'white', borderRadius: '12px', padding: '28px', width: '100%', maxWidth: '420px', boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#0003B8', marginBottom: '8px' }}>Derivar ficha</h2>
+            <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '16px' }}>Selecciona la especialidad destino:</p>
+            <select
               value={selectedEspecialidad}
-              onChange={(e) => setSelectedEspecialidad(Number(e.target.value))}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', marginBottom: '20px' }}
+              onChange={e => setSelectedEspecialidad(Number(e.target.value))}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px solid #B3D4FF', marginBottom: '20px', fontSize: '14px' }}
             >
               <option value={0}>Seleccionar especialidad...</option>
               {especialidades.map(esp => (
@@ -375,11 +317,16 @@ export default function FichasDelDia() {
               ))}
             </select>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-              <button onClick={() => setDerivarModal({ id: 0, open: false })} style={{ padding: '8px 16px', background: '#F1F5F9', border: 'none', borderRadius: '8px' }}>Cancelar</button>
-              <button 
-                onClick={handleDerivar} 
+              <button
+                onClick={() => setDerivarModal({ id: 0, open: false })}
+                style={{ padding: '8px 18px', background: '#F1F5F9', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDerivar}
                 disabled={!selectedEspecialidad}
-                style={{ padding: '8px 16px', background: '#00A896', color: 'white', border: 'none', borderRadius: '8px', opacity: selectedEspecialidad ? 1 : 0.5 }}
+                style={{ padding: '8px 18px', background: selectedEspecialidad ? '#0003B8' : '#B3D4FF', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: selectedEspecialidad ? 'pointer' : 'not-allowed' }}
               >
                 Derivar
               </button>

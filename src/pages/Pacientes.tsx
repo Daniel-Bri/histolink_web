@@ -29,6 +29,7 @@ export default function Pacientes() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
   const POR_PAGINA = 10
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchRef   = useRef<HTMLInputElement>(null)
 
   const buscarPacientes = async (pag = 1, search = busqueda) => {
     setLoading(true)
@@ -56,6 +57,23 @@ export default function Pacientes() {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => { void buscarPacientes(1, busqueda) }, 300)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [busqueda])
+
+  // Ctrl+F → enfocar buscador | Escape → limpiar búsqueda
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault()
+        searchRef.current?.focus()
+        searchRef.current?.select()
+      }
+      if (e.key === 'Escape' && busqueda) {
+        setBusqueda('')
+        searchRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
   }, [busqueda])
 
   useEffect(() => {
@@ -145,8 +163,10 @@ export default function Pacientes() {
           placeholder={soloMisPacientes
             ? 'Buscar en mis pacientes por CI o apellido...'
             : 'Buscar paciente para emergencia por CI o apellido...'}
+          ref={searchRef}
           value={busqueda}
           onChange={e => setBusqueda(e.target.value)}
+          onKeyDown={e => e.key === 'Escape' && setBusqueda('')}
           style={{ flex: 1, minWidth: isMobile ? '100%' : '200px', width: '100%' }}
           autoFocus
         />
