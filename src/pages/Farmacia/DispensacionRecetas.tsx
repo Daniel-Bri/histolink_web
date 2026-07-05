@@ -254,7 +254,7 @@ export default function DispensacionRecetas() {
                               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
                                 <span><strong>Tipo:</strong> {blockchainData[r.id].evento_blockchain.tipo_evento}</span>
                                 <span><strong>Firmado por:</strong> {blockchainData[r.id].evento_blockchain.firmado_por}</span>
-                                <span><strong>Timestamp:</strong> {blockchainData[r.id].evento_blockchain.timestamp.slice(0, 19).replace('T', ' ')}</span>
+                                <span><strong>Timestamp:</strong> {new Date(blockchainData[r.id].evento_blockchain.timestamp).toLocaleString('es-BO', { timeZone: 'America/La_Paz' })}</span>
                                 <span><strong>Hash doc:</strong> <code style={{ fontSize: '11px' }}>{blockchainData[r.id].evento_blockchain.hash_documento.slice(0, 20)}...</code></span>
                                 <span style={{ gridColumn: '1 / -1' }}><strong>Hash bloque:</strong> <code style={{ fontSize: '11px' }}>{blockchainData[r.id].evento_blockchain.bloque_hash}</code></span>
                               </div>
