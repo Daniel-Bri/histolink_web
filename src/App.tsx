@@ -43,6 +43,7 @@ import SaasPagoExito from './pages/SaaS/PagoExito'
 import SaasPagoCancelado from './pages/SaaS/PagoCancelado'
 import ReportesSNIS from './pages/ReportesSNIS'
 import GestionPermisos from './pages/GestionPermisos'
+import DispensacionRecetas from './pages/Farmacia/DispensacionRecetas'
 
 export default function App() {
   return (
@@ -98,6 +99,7 @@ export default function App() {
           <Route path="/cobros/cancelado" element={<CobroCancelado />} />
           <Route path="/saas/pago/exito"     element={<SaasPagoExito />} />
           <Route path="/saas/pago/cancelado" element={<SaasPagoCancelado />} />
+          <Route path="/farmacia/dispensacion" element={<DispensacionRecetas />} />
         </Route>
         
         {/* Redirige la raíz al dashboard */}

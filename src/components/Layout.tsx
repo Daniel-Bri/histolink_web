@@ -180,7 +180,7 @@ const NAV: NavSection[] = [
   {
     title: 'Atención Clínica',
     items: [
-      { label: 'Nueva Consulta SOAP', path: '/consulta',                   icon: 'clipboard',    roles: ['Médico', 'Director', 'ADMIN', 'Admin'] },
+      { label: 'Nueva Consulta SOAP', path: '/consulta',                    icon: 'clipboard',    roles: ['Médico', 'Director', 'ADMIN', 'Admin'] },
       { label: 'Fichas del Día',      path: '/fichas/dia',                  icon: 'clipboard',    roles: ['Médico', 'Enfermera', 'Administrativo', 'Director'] },
       { label: 'Apertura de ficha',   path: '/fichas/cola-dia',             icon: 'clipboard',    roles: ['Administrativo', 'Director'] },
       { label: 'Consentimientos',     path: '/consentimientos',             icon: 'check-square', roles: ['Médico', 'Enfermera', 'Administrativo', 'Director', 'Paciente'] },
@@ -188,9 +188,10 @@ const NAV: NavSection[] = [
       { label: 'Solicitar estudio',   path: '/estudios/solicitud',          icon: 'clipboard',    roles: ['Médico', 'Administrativo', 'Director'] },
       { label: 'Cola laboratorio',    path: '/estudios/cola-laboratorio',   icon: 'flask',        roles: ['Laboratorio', 'Administrativo', 'Director'] },
       { label: 'Reportes producción', path: '/reportes/produccion',         icon: 'activity',     roles: ['ADMIN', 'Admin', 'Administrativo', 'Auditor', 'Médico', 'Director'] },
-      { label: 'Reporte SNIS',       path: '/reportes/snis',               icon: 'file',         roles: ['Administrativo', 'Auditor', 'Médico', 'Director'] },
+      { label: 'Reporte SNIS',        path: '/reportes/snis',               icon: 'file',         roles: ['Administrativo', 'Auditor', 'Médico', 'Director'] },
       { label: 'Recetas',             path: '/recetas',                     icon: 'clipboard',    roles: ['Médico', 'Farmacia', 'Administrativo', 'Director'] },
       { label: 'Cobro de servicios',  path: '/cobros',                      icon: 'clipboard',    roles: ['Administrativo'] },
+      { label: 'Dispensación de recetas', path: '/farmacia/dispensacion',   icon: 'clipboard',    roles: ['Farmacia'] },
     ],
   },
   {
