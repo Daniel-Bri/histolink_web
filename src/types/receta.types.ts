@@ -25,6 +25,9 @@ export interface Receta {
   fecha_dispensacion: string | null
   observaciones: string
   detalles: DetalleReceta[]
+  paciente_nombre: string
+  paciente_ci: string
+  medico_nombre: string
 }
 
 export interface EventoBlockchainReceta {
@@ -44,5 +47,6 @@ export interface BlockchainRecetaResponse {
   receta_id: number
   numero_receta: string
   estado_receta: EstadoReceta
+  es_integro: boolean
   evento_blockchain: EventoBlockchainReceta
 }

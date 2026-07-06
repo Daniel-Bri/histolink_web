@@ -191,7 +191,7 @@ const NAV: NavSection[] = [
       { label: 'Reporte SNIS',        path: '/reportes/snis',               icon: 'file',         roles: ['Administrativo', 'Auditor', 'Médico', 'Director'] },
       { label: 'Recetas',             path: '/recetas',                     icon: 'clipboard',    roles: ['Médico', 'Farmacia', 'Administrativo', 'Director'] },
       { label: 'Cobro de servicios',  path: '/cobros',                      icon: 'clipboard',    roles: ['Administrativo'] },
-      { label: 'Dispensación de recetas', path: '/farmacia/dispensacion',   icon: 'clipboard',    roles: ['Farmacia'] },
+      { label: 'Dispensación de recetas', path: '/farmacia/dispensacion',   icon: 'clipboard',    roles: ['Farmacia', 'Médico', 'Auditor'] },
     ],
   },
   {
